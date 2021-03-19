@@ -7,19 +7,16 @@ import json
 from datetime import datetime, timedelta
 from flask import Flask, flash, jsonify, request, redirect, url_for, session
 from flask import render_template, make_response, send_from_directory
-# from flask_sqlalchemy import SQLAlchemy
 from flask_oauthlib.provider import OAuth2Provider
-# from flask_mqtt import Mqtt
 from werkzeug.security import gen_salt
 from werkzeug.utils import secure_filename
-# LOCAL
+# LOCAL Modules
 from action_devices import onSync, onQuery, onExecute, rexecute # I WILL ADD Modules LATER AFTER CLEANING THE CODE
 import RequestSync as sync      # GOOGLE
 import ReportState as state     # GOOGLE
-# import my_firebase as rg
 from notifications import mqtt # I WILL ADD Modules LATER AFTER CLEANING THE CODE
-from models import db # I WILL ADD Modules LATER AFTER CLEANING THE CODE
-from models import User, Token, Grant, Client # I WILL ADD Modules LATER AFTER CLEANING THE CODE
+from models import db
+from models import User, Token, Grant, Client
 from routes import bp # I WILL ADD Modules LATER AFTER CLEANING THE CODE
 # from oauth2 import oauth
 
