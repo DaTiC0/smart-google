@@ -13,7 +13,7 @@ from flask_oauthlib.provider import OAuth2Provider
 from werkzeug.security import gen_salt
 from werkzeug.utils import secure_filename
 # LOCAL
-from action_devices import onSync, onQuery, onExecute, rexecute # I WILL ADD Modules LATER AFTER CLEANING THE CODE
+from action_devices import onSync, onQuery, onExecute, rexecute 
 import RequestSync as sync      # GOOGLE
 import ReportState as state     # GOOGLE
 # import my_firebase as rg
@@ -141,6 +141,6 @@ def devices():
 
 
 if __name__ == '__main__':
-    os.environ['DEBUG'] = 'True'
+    os.environ['DEBUG'] = 'True' # While in development
     db.create_all()
     app.run()
