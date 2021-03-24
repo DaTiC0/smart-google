@@ -64,7 +64,7 @@ def uploaded_file(filename):
 #     return "THIS IS TEST NO RETURN"
 
 
-@app.route('/IFTTT', methods=['POST'])
+# @app.route('/IFTTT', methods=['POST'])
 # def ifttt():
 #     # IFTTT Integration not completed
 #     req = request.get_json(silent=True, force=True)
