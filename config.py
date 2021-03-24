@@ -23,3 +23,5 @@ MQTT_TLS_ENABLED = False  # set TLS to disabled for testing purposes
 API_KEY = environ.get('API_KEY') # Generated API Key From GOOGLE 
 AGENT_USER_ID = environ.get('AGENT_USER_ID') # UNicue Application ID
 SERVICE_ACCOUNT_FILE = environ.get('SERVICE_ACCOUNT_FILE') # Google service account file location and name
+FIREBASE_ADMINSDK_FILE = environ.get('FIREBASE_ADMINSDK_FILE')
+DATABASEURL = environ.get('DATABASEURL') # your Project database URL
