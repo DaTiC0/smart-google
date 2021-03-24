@@ -17,7 +17,7 @@ import ReportState as state     # GOOGLE
 from notifications import mqtt # I WILL ADD Modules LATER AFTER CLEANING THE CODE
 from models import db
 from models import User, Token, Grant, Client
-from routes import bp # I WILL ADD Modules LATER AFTER CLEANING THE CODE
+from routes import bp 
 # from oauth2 import oauth
 
 log = logging.getLogger(__name__)
@@ -53,41 +53,34 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'],
                                filename)
 
-# Created for DIY Sprinkler MADE BY DATI_CO (ME)
-# Sprinkler code not finished
-# Using Micropython on microcontrollers
-@app.route('/sprink')
-def sprink():
-    return "NOT OK"
 
-
-@app.route('/sync')
-def sync_devices():
-    # sync devices via API and Token From Google
-    # token must be generated from google and save localy
-    ## whant to change JSON to some env secret
-    sync.main(app.config['API_KEY'], app.config['AGENT_USER_ID'])
-    state.main(app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
-    return "THIS IS TEST NO RETURN"
+# @app.route('/sync')
+# def sync_devices():
+#     # sync devices via API and Token From Google
+#     # token must be generated from google and save localy
+#     ## whant to change JSON to some env secret
+#     sync.main(app.config['API_KEY'], app.config['AGENT_USER_ID'])
+#     state.main(app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
+#     return "THIS IS TEST NO RETURN"
 
 
 @app.route('/IFTTT', methods=['POST'])
-def ifttt():
-    # IFTTT Integration not completed
-    req = request.get_json(silent=True, force=True)
-    print('INCOMING IFTTT:')
-    print(json.dumps(req, indent=4))
-    # print(req)
+# def ifttt():
+#     # IFTTT Integration not completed
+#     req = request.get_json(silent=True, force=True)
+#     print('INCOMING IFTTT:')
+#     print(json.dumps(req, indent=4))
+#     # print(req)
 
 
-    result = {
-        "data": {
-            'x': 'DaTi',
-            'y': 'Comnpany'
-        }
-    }
+#     result = {
+#         "data": {
+#             'x': 'DaTi',
+#             'y': 'Comnpany'
+#         }
+#     }
 
-    return result
+#     return result
 
 
 @app.route('/smarthome', methods=['POST'])
@@ -129,12 +122,12 @@ def smarthome():
     return make_response(jsonify(result))
 
 
-@app.route('/devices')
-def devices():
-    dev_req = onSync('OK')
-    devices = dev_req['devices']
-    print('Are we OK?')
-    return render_template('devices.html', title='Smart-David', devices=devices)
+# @app.route('/devices')
+# def devices():
+#     dev_req = onSync('OK')
+#     devices = dev_req['devices']
+#     print('Are we OK?')
+#     return render_template('devices.html', title='Smart-David', devices=devices)
 
 
 if __name__ == '__main__':
