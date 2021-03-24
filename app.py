@@ -10,13 +10,8 @@ from flask import render_template, make_response, send_from_directory
 from flask_oauthlib.provider import OAuth2Provider
 from werkzeug.security import gen_salt
 from werkzeug.utils import secure_filename
-<<<<<<< HEAD
 # LOCAL
 from action_devices import onSync, onQuery, onExecute, rexecute 
-=======
-# LOCAL Modules
-from action_devices import onSync, onQuery, onExecute, rexecute # I WILL ADD Modules LATER AFTER CLEANING THE CODE
->>>>>>> 92f01f94e0b04b79ed0c103a98e28223c11941e7
 import RequestSync as sync      # GOOGLE
 import ReportState as state     # GOOGLE
 from notifications import mqtt # I WILL ADD Modules LATER AFTER CLEANING THE CODE

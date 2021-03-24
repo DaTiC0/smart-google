@@ -5,6 +5,7 @@ Google Home integration to your custom devices by Google action and Python
 ## Environment
 
 Using Heroku to deploy python application
+Using Firebase for database
 
 ### Prefix or Postfix or some bull**
 

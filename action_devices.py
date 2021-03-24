@@ -4,6 +4,7 @@ from firebase_admin import credentials
 from firebase_admin import db
 import config
 
+
 cred = credentials.Certificate(config.FIREBASE_ADMINSDK_FILE)
 firebase_admin.initialize_app(cred, {
     'databaseURL': config.DATABASEURL
@@ -14,7 +15,7 @@ ref = db.reference('/devices')
 
 def report_state():
     # devices must be change to dynamic not static like this
-    devices = [123, 124, 125, 126, 127]
+    devices = [123, 124, 125, 126, 127] # this is for test. need to be updated to real devices
     payload = {
         "devices": {
             "states": {}
@@ -61,7 +62,7 @@ def rexecute(deviceId, parameters):
 def onSync(body):
     # handle sync request
     payload = {
-        "agentUserId": "1836.15267389",
+        "agentUserId": config.AGENT_USER_ID,
         "devices": rsync()
     }
     return payload
