@@ -4,21 +4,14 @@
 import os
 import logging
 import json
-from datetime import datetime, timedelta
-from flask import Flask, flash, jsonify, request, redirect, url_for, session
-from flask import render_template, make_response, send_from_directory
-from flask_oauthlib.provider import OAuth2Provider
-from werkzeug.security import gen_salt
-from werkzeug.utils import secure_filename
+from flask import Flask, request, jsonify, make_response, send_from_directory
+
 # LOCAL
 from action_devices import onSync, onQuery, onExecute, rexecute 
-import RequestSync as sync      # GOOGLE
-import ReportState as state     # GOOGLE
 from notifications import mqtt # I WILL ADD Modules LATER AFTER CLEANING THE CODE
 from models import db
-from models import User, Token, Grant, Client
 from routes import bp 
-# from oauth2 import oauth
+from oauth2 import oauth
 
 log = logging.getLogger(__name__)
 
@@ -27,18 +20,12 @@ app = Flask(__name__, template_folder='templates')
 app.config.from_object('config')
 app.register_blueprint(bp, url_prefix='')
 # MQTT CONNECT
-# mqtt = Mqtt(app)
-
 mqtt.init_app(app)
 mqtt.subscribe('XXX/notification')
 mqtt.subscribe('YYY/status')
-
 # SQLAlchemy DATABASE
-# db = SQLAlchemy(app)
 db.init_app(app)
 # OAuth2 Authorisation
-# oauth = OAuth2Provider(app)
-oauth = OAuth2Provider()
 oauth.init_app(app)
 
 ALLOWED_EXTENSIONS = set(['txt', 'py']) # for some files to save 
@@ -52,35 +39,6 @@ def allowed_file(filename):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'],
                                filename)
-
-
-# @app.route('/sync')
-# def sync_devices():
-#     # sync devices via API and Token From Google
-#     # token must be generated from google and save localy
-#     ## whant to change JSON to some env secret
-#     sync.main(app.config['API_KEY'], app.config['AGENT_USER_ID'])
-#     state.main(app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
-#     return "THIS IS TEST NO RETURN"
-
-
-# @app.route('/IFTTT', methods=['POST'])
-# def ifttt():
-#     # IFTTT Integration not completed
-#     req = request.get_json(silent=True, force=True)
-#     print('INCOMING IFTTT:')
-#     print(json.dumps(req, indent=4))
-#     # print(req)
-
-
-#     result = {
-#         "data": {
-#             'x': 'DaTi',
-#             'y': 'Comnpany'
-#         }
-#     }
-
-#     return result
 
 
 @app.route('/smarthome', methods=['POST'])
@@ -120,14 +78,6 @@ def smarthome():
     print('RESPONSE TO GOOGLE HOME')
     print(json.dumps(result, indent=4))
     return make_response(jsonify(result))
-
-
-# @app.route('/devices')
-# def devices():
-#     dev_req = onSync('OK')
-#     devices = dev_req['devices']
-#     print('Are we OK?')
-#     return render_template('devices.html', title='Smart-David', devices=devices)
 
 
 if __name__ == '__main__':
