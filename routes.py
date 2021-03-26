@@ -16,12 +16,7 @@ import ReportState as state
 bp = Blueprint(__name__, 'home')
 ################################################################
 
-# Created for DIY Sprinkler MADE BY DATI_CO (ME)
-# Sprinkler code not finished
-# Using Micropython on microcontrollers
-@bp.route('/sprink')
-def sprink():
-    return "NOT OK"
+
 
 
 @bp.route('/', methods=('GET', 'POST'))
@@ -77,6 +72,9 @@ def ifttt():
     return result
 
 
+# Created for DIY Sprinkler MADE BY DATI_CO (ME)
+# Sprinkler code not finished
+# Using Micropython on microcontrollers
 @bp.route('/sprink')
 def sprink():
     return "NOT OK"
