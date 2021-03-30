@@ -44,15 +44,6 @@ def sync_devices():
     return "THIS IS TEST NO RETURN"
 
 
-################################################################
-
-@bp.route('/sync')
-def sync_devices():
-    sync.main(current_app.config['API_KEY'], current_app.config['AGENT_USER_ID'])
-    state.main(current_app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
-    return "THIS IS TEST NO RETURN"
-
-
 @bp.route('/IFTTT', methods=['POST'])
 def ifttt():
     req = request.get_json(silent=True, force=True)
