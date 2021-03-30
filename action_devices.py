@@ -14,8 +14,8 @@ ref = db.reference('/devices')
 
 
 def report_state():
-    # devices must be change to dynamic not static like this
-    devices = [123, 124, 125, 126, 127] # this is for test. need to be updated to real devices
+    # Getting devices from Firebase as list
+    devices = list(ref.get().keys())
     payload = {
         "devices": {
             "states": {}
