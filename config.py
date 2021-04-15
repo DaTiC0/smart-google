@@ -1,3 +1,5 @@
+# coding: utf-8
+# Code By DaTi_Co
 # Config.py
 # App Configuration File
 from os import environ, path

@@ -1,3 +1,5 @@
+# coding: utf-8
+# Code By DaTi_Co
 # OAuth2
 from datetime import datetime, timedelta
 from flask_oauthlib.provider import OAuth2Provider
