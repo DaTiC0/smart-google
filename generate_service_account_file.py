@@ -1,3 +1,5 @@
+# coding: utf-8
+# Code By DaTi_Co
 # Generate service account file from ENV
 # TEmporary Solution
 from os import environ, path
