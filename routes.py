@@ -21,7 +21,6 @@ bp = Blueprint(__name__, 'home')
 def home():
     if request.method == 'POST':
         username = request.form.get('username')
-        print(username)
         user = User.query.filter_by(username=username).first()
         if not user:
             user = User(username=username)
