@@ -8,6 +8,8 @@ mqtt = Mqtt()
 # @mqtt.on_log()
 # def handle_logging(client, userdata, level, buf):
 #     print(client, userdata, level, buf)
+
+
 @mqtt.on_message()
 def handle_messages(client, userdata, message):
     print('Received message on topic {}: {}'

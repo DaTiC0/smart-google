@@ -91,7 +91,8 @@ def report_state(access_token, report_state_file):
             data = json.load(json_file)
         print('THIS IS REPORT FILE:')
         print(data)
-    except:
+    except ValueError as e:
+        print(e)
         data = report_state_file
         print('THIS IS GENERATED FILE:')
         print(data)

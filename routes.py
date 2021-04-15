@@ -17,8 +17,6 @@ bp = Blueprint(__name__, 'home')
 ################################################################
 
 
-
-
 @bp.route('/', methods=('GET', 'POST'))
 def home():
     if request.method == 'POST':
@@ -39,7 +37,8 @@ def home():
 
 @bp.route('/sync')
 def sync_devices():
-    sync.main(current_app.config['API_KEY'], current_app.config['AGENT_USER_ID'])
+    sync.main(current_app.config['API_KEY'],
+              current_app.config['AGENT_USER_ID'])
     # state.main(current_app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
     # lets fix this
     import random
@@ -64,7 +63,6 @@ def ifttt():
     print('INCOMING IFTTT:')
     print(json.dumps(req, indent=4))
     # print(req)
-
 
     result = {
         "data": {

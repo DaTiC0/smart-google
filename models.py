@@ -1,6 +1,6 @@
 # ORM FOR MY STUPID DB
 # I hate DB
-# I will migrate it to firebase where 
+# I will migrate it to firebase where
 # I store all my hardware or virtual device information
 from flask_sqlalchemy import SQLAlchemy
 

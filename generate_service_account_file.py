@@ -7,6 +7,7 @@ import json
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
 
+
 def generate_file():
     data = {
         'type': 'service_account',

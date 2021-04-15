@@ -7,10 +7,10 @@ import json
 from flask import Flask, request, jsonify, make_response, send_from_directory
 
 # LOCAL
-from action_devices import onSync, onQuery, onExecute, rexecute 
-from notifications import mqtt # I WILL ADD Modules LATER AFTER CLEANING THE CODE
+from action_devices import onSync, onQuery, onExecute, rexecute
+from notifications import mqtt  # I WILL ADD Modules LATER AFTER CLEANING THE CODE
 from models import db
-from routes import bp 
+from routes import bp
 from oauth2 import oauth
 
 log = logging.getLogger(__name__)
@@ -28,7 +28,8 @@ db.init_app(app)
 # OAuth2 Authorisation
 oauth.init_app(app)
 
-ALLOWED_EXTENSIONS = set(['txt', 'py']) # for some files to save 
+ALLOWED_EXTENSIONS = set(['txt', 'py'])  # for some files to save
+
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -81,6 +82,6 @@ def smarthome():
 
 
 if __name__ == '__main__':
-    os.environ['DEBUG'] = 'True' # While in development
+    os.environ['DEBUG'] = 'True'  # While in development
     db.create_all()
     app.run()
