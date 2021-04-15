@@ -7,6 +7,7 @@ from generate_service_account_file import generate_file
 
 
 FIREBASE_ADMINSDK_FILE = generate_file()
+print(FIREBASE_ADMINSDK_FILE)
 cred = credentials.Certificate(FIREBASE_ADMINSDK_FILE)
 # cred = credentials.Certificate(config.FIREBASE_ADMINSDK_FILE)
 firebase_admin.initialize_app(cred, {
