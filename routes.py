@@ -5,7 +5,7 @@ import json
 from flask import Blueprint, request, session, current_app
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
-from action_devices import onSync
+from action_devices import onSync, report_state
 from models import db, User, Client
 from oauth2 import oauth, current_user
 import RequestSync as sync
@@ -40,7 +40,20 @@ def home():
 @bp.route('/sync')
 def sync_devices():
     sync.main(current_app.config['API_KEY'], current_app.config['AGENT_USER_ID'])
-    state.main(current_app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
+    # state.main(current_app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
+    # lets fix this
+    import random
+    n = random.randint(10000000000000000000, 90000000000000000000)
+    report_state_file = {
+        'requestId': n,
+        'agentUserId': current_app.config['AGENT_USER_ID'],
+        'payload': ''
+    }
+    report_state_file['payload'] = report_state()
+    # print(report_state_file)
+    # report state generated
+    # now need to generate service account
+    state.main(current_app.config['SERVICE_ACCOUNT_FILE'], report_state_file)
     return "THIS IS TEST NO RETURN"
 
 

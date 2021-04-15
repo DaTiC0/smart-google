@@ -86,9 +86,15 @@ def report_state(access_token, report_state_file):
         'Authorization': 'Bearer ' + access_token
     }
     data = {}
-
-    with io.open(report_state_file, 'r', encoding='utf-8') as json_file:
-        data = json.load(json_file)
+    try:
+        with io.open(report_state_file, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+        print('THIS IS REPORT FILE:')
+        print(data)
+    except:
+        data = report_state_file
+        print('THIS IS GENERATED FILE:')
+        print(data)
 
     response = requests.post(url, headers=headers, json=data)
 
