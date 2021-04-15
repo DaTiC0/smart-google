@@ -79,12 +79,10 @@ def sync_devices():
     import random
     n = random.randint(10000000000000000000, 90000000000000000000)
     report_state_file = {
-        'requestId': n,
+        'requestId': str(n),
         'agentUserId': current_app.config['AGENT_USER_ID'],
         'payload': report_state(),
     }
-
-    # print(report_state_file)
     # report state generated
     # now need to generate service account
     state.main(current_app.config['SERVICE_ACCOUNT_FILE'], report_state_file)

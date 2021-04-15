@@ -4,7 +4,7 @@
 # App Configuration File
 from os import environ, path
 from dotenv import load_dotenv
-
+from generate_service_account_file import generate_file
 
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
@@ -23,7 +23,9 @@ MQTT_KEEPALIVE = 90  # set the time interval for sending a ping to the broker to
 MQTT_TLS_ENABLED = False  # set TLS to disabled for testing purposes
 API_KEY = environ.get('API_KEY')
 AGENT_USER_ID = environ.get('AGENT_USER_ID')
-SERVICE_ACCOUNT_FILE = environ.get('SERVICE_ACCOUNT_FILE')  # Google service account file location and name
-FIREBASE_ADMINSDK_FILE = environ.get('FIREBASE_ADMINSDK_FILE')
+SERVICE_ACCOUNT_FILE = generate_file()
+FIREBASE_ADMINSDK_FILE = generate_file()
+# SERVICE_ACCOUNT_FILE = environ.get('SERVICE_ACCOUNT_FILE')  # Google service account file location and name
+# FIREBASE_ADMINSDK_FILE = environ.get('FIREBASE_ADMINSDK_FILE')
 DATABASEURL = environ.get('DATABASEURL')  # your Project database URL
 SERVICE_ACCOUNT_DATA = environ.get('SERVICE_ACCOUNT_DATA')
