@@ -7,7 +7,7 @@ from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
 from action_devices import onSync, report_state
 from models import db, User, Client
-from oauth2 import oauth, current_user
+from my_oauth import oauth, current_user
 import RequestSync as sync
 import ReportState as state
 
@@ -21,7 +21,6 @@ bp = Blueprint(__name__, 'home')
 def home():
     if request.method == 'POST':
         username = request.form.get('username')
-        print(username)
         user = User.query.filter_by(username=username).first()
         if not user:
             user = User(username=username)
@@ -33,6 +32,43 @@ def home():
     print(user)
     return render_template('home.html', user=user)
 
+
+@bp.route('/oauth/token', methods=['POST'])
+@oauth.token_handler
+def access_token():
+    print('this is token')
+    return {'version': '0.1.0'}
+
+
+@bp.route('/oauth/authorize', methods=['GET', 'POST'])
+@oauth.authorize_handler
+def authorize(*args, **kwargs):
+    print("this is authorize")
+    user = current_user()
+    print("Authorize User: %s" % user)
+    if not user:
+        return redirect('/')
+    if request.method == 'GET':
+        client_id = kwargs.get('client_id')
+        client = Client.query.filter_by(client_id=client_id).first()
+        print(client_id)
+        print(client)
+        kwargs['client'] = client
+        kwargs['user'] = user
+        return render_template('authorize.html', **kwargs)
+
+    confirm = request.form.get('confirm', 'no')
+    return confirm == 'yes'
+
+
+@bp.route('/api/me')
+@oauth.require_oauth()
+def me(req):
+    print("this is me")
+    user = req.user
+    return jsonify(username=user.username)
+
+################################################################
 
 @bp.route('/sync')
 def sync_devices():

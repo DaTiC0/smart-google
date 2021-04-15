@@ -2,7 +2,7 @@
 # TEmporary Solution
 from os import environ, path
 from dotenv import load_dotenv
-import json
+
 
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
@@ -27,14 +27,9 @@ def generate_file():
     except:
         print('Nothing to replace')
 
-    print('DICTIONARY: ')
-    print(data)
+    print('DICTIONARY Generated')
+    # print(data)
 
-    with open('service_account_file.json', 'w') as jsonFile:
-        json.dump(data, jsonFile, indent=4)
-
-# d = environ.get('SERVICE_ACCOUNT_DATA')
-# print(type(d))
-# d = json.loads(d)
-# print(type(d))
-# print(d)
+    # with open('service_account_file.json', 'w') as jsonFile:
+    #     json.dump(data, jsonFile, indent=4)
+    return data

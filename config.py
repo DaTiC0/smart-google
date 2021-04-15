@@ -3,7 +3,7 @@
 from os import environ, path
 from dotenv import load_dotenv
 
-# Find .env file
+
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
 
@@ -22,6 +22,6 @@ MQTT_TLS_ENABLED = False  # set TLS to disabled for testing purposes
 API_KEY = environ.get('API_KEY')
 AGENT_USER_ID = environ.get('AGENT_USER_ID')
 SERVICE_ACCOUNT_FILE = environ.get('SERVICE_ACCOUNT_FILE')  # Google service account file location and name
-FIREBASE_ADMINSDK_FILE = environ.get('SERVICE_ACCOUNT_FILE')
+FIREBASE_ADMINSDK_FILE = environ.get('FIREBASE_ADMINSDK_FILE')
 DATABASEURL = environ.get('DATABASEURL')  # your Project database URL
 SERVICE_ACCOUNT_DATA = environ.get('SERVICE_ACCOUNT_DATA')
