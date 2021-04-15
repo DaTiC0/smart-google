@@ -81,9 +81,9 @@ def sync_devices():
     report_state_file = {
         'requestId': n,
         'agentUserId': current_app.config['AGENT_USER_ID'],
-        'payload': ''
+        'payload': report_state(),
     }
-    report_state_file['payload'] = report_state()
+
     # print(report_state_file)
     # report state generated
     # now need to generate service account

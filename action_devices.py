@@ -52,16 +52,12 @@ def rsync():
 
 
 def rquery(deviceId):
-    snapshot = ref.child(deviceId).child('states').get()
-
-    return snapshot
+    return ref.child(deviceId).child('states').get()
 
 
 def rexecute(deviceId, parameters):
     ref.child(deviceId).child('states').update(parameters)
-    states = ref.child(deviceId).child('states').get()
-
-    return states
+    return ref.child(deviceId).child('states').get()
 
 
 def onSync(body):

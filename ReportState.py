@@ -59,9 +59,7 @@ def generate_jwt(service_account_file):
         'scope': 'https://www.googleapis.com/auth/homegraph'
     }
 
-    signed_jwt = google.auth.jwt.encode(signer, payload)
-
-    return signed_jwt
+    return google.auth.jwt.encode(signer, payload)
 
 
 def get_access_token(signed_jwt):
