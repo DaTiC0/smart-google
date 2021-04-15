@@ -27,8 +27,8 @@ def generate_file():
     except:
         print('Nothing to replace')
 
-    print('DICTIONARY: ')
-    print(data)
+    print('DICTIONARY Generated')
+    # print(data)
 
     # with open('service_account_file.json', 'w') as jsonFile:
     #     json.dump(data, jsonFile, indent=4)

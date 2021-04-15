@@ -11,7 +11,7 @@ from action_devices import onSync, onQuery, onExecute, rexecute
 from notifications import mqtt  # I WILL ADD Modules LATER AFTER CLEANING THE CODE
 from models import db
 from routes import bp
-from oauth2 import oauth
+from my_oauth import oauth
 
 log = logging.getLogger(__name__)
 
