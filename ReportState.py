@@ -41,7 +41,8 @@ def generate_jwt(service_account_file):
     try:
         signer = google.auth.crypt.RSASigner.from_service_account_file(
             service_account_file)
-    except:
+    except TypeError as e:
+        print(e)
         signer = google.auth.crypt.RSASigner.from_string(
             service_account_file['private_key'])
     now = int(time.time())
