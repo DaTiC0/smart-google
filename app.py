@@ -28,7 +28,7 @@ db.init_app(app)
 # OAuth2 Authorisation
 oauth.init_app(app)
 
-ALLOWED_EXTENSIONS = set('txt', 'py')  # for some files to save
+ALLOWED_EXTENSIONS = set(['txt', 'py'])  # for some files to save
 
 
 def allowed_file(filename):
