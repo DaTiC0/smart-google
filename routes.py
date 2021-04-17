@@ -118,8 +118,8 @@ def sprink():
 @bp.route('/devices')
 def devices():
     dev_req = onSync('OK')
-    devices = dev_req['devices']
+    device_list = dev_req['devices']
     print('Are we OK?')
-    return render_template('devices.html', title='Smart-David', devices=devices)
+    return render_template('devices.html', title='Smart-Home', devices=device_list)
 
 ################################################################
