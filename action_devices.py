@@ -70,8 +70,8 @@ def onQuery(body):
     payload = {
         "devices": {},
     }
-    for input in body['inputs']:
-        for device in input['payload']['devices']:
+    for i in body['inputs']:
+        for device in i['payload']['devices']:
             deviceId = device['id']
             print('DEVICE ID: ' + deviceId)
             data = rquery(deviceId)
