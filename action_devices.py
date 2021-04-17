@@ -6,11 +6,7 @@ import config
 from generate_service_account_file import generate_file
 
 
-FIREBASE_ADMINSDK_FILE = generate_file()
-print('FIREBASE:')
-print(FIREBASE_ADMINSDK_FILE)
-cred = credentials.Certificate(FIREBASE_ADMINSDK_FILE)
-# cred = credentials.Certificate(config.FIREBASE_ADMINSDK_FILE)
+cred = credentials.Certificate(config.FIREBASE_ADMINSDK_FILE)
 firebase_admin.initialize_app(cred, {
     'databaseURL': config.DATABASEURL
 })
@@ -52,16 +48,12 @@ def rsync():
 
 
 def rquery(deviceId):
-    snapshot = ref.child(deviceId).child('states').get()
-
-    return snapshot
+    return ref.child(deviceId).child('states').get()
 
 
 def rexecute(deviceId, parameters):
     ref.child(deviceId).child('states').update(parameters)
-    states = ref.child(deviceId).child('states').get()
-
-    return states
+    return ref.child(deviceId).child('states').get()
 
 
 def onSync(body):

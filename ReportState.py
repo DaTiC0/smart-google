@@ -38,17 +38,23 @@ def generate_jwt(service_account_file):
     # google.auth.jwt.Credentials to automatically create the JWT.
     #   http://google-auth.readthedocs.io/en/latest/reference
     #   /google.auth.jwt.html#google.auth.jwt.Credentials
-
-    signer = google.auth.crypt.RSASigner.from_service_account_file(
-        service_account_file)
-
+    try:
+        signer = google.auth.crypt.RSASigner.from_service_account_file(
+            service_account_file)
+    except:
+        signer = google.auth.crypt.RSASigner.from_string(
+            service_account_file['private_key'])
     now = int(time.time())
     expires = now + 3600  # One hour in seconds
 
     iss = ''
-
-    with io.open(service_account_file, 'r', encoding='utf-8') as json_file:
-        data = json.load(json_file)
+    try:
+        with io.open(service_account_file, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+            iss = data['client_email']
+    except TypeError as e:
+        print(e)
+        data = service_account_file
         iss = data['client_email']
 
     payload = {
@@ -59,9 +65,7 @@ def generate_jwt(service_account_file):
         'scope': 'https://www.googleapis.com/auth/homegraph'
     }
 
-    signed_jwt = google.auth.jwt.encode(signer, payload)
-
-    return signed_jwt
+    return google.auth.jwt.encode(signer, payload)
 
 
 def get_access_token(signed_jwt):
@@ -91,7 +95,7 @@ def report_state(access_token, report_state_file):
             data = json.load(json_file)
         print('THIS IS REPORT FILE:')
         print(data)
-    except ValueError as e:
+    except TypeError as e:
         print(e)
         data = report_state_file
         print('THIS IS GENERATED FILE:')
@@ -116,19 +120,3 @@ def main(service_account_file, report_state_file):
         print('Report State has been done successfully.')
     else:
         print('Report State failed. Please check the log above.')
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument(
-        'service_account_file',
-        help='The path to your service account json file.')
-    parser.add_argument(
-        'report_state_file',
-        help='The path to the json file containing the states you want to report.')
-
-    args = parser.parse_args()
-
-    main(args.service_account_file, args.report_state_file)
