@@ -23,9 +23,14 @@ def generate_file():
         'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
         'client_x509_cert_url': environ.get('CLIENT_X509_CERT_URL')
     }
+    try:
+        print('Try to replace NewLine Exception')
+        data['private_key'] = data['private_key'].replace('\\n', '\n')
+    except:
+        print('Nothing to replace')
 
-    print('replacing NewLine Exception')
-    data['private_key'] = data['private_key'].replace('\\n', '\n')
+    print('DICTIONARY Generated')
+    # print(data)
 
     # with open('service_account_file.json', 'w') as jsonFile:
     #     json.dump(data, jsonFile, indent=4)
