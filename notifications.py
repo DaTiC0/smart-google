@@ -28,3 +28,9 @@ def handle_publish(client, userdata, mid):
 def handle_subscribe(client, userdata, mid, granted_qos):
     print('Subscription id {} granted with qos {}.'
           .format(mid, granted_qos))
+
+
+@mqtt.on_topic('XXX/notification')
+def handle_mytopic(client, userdata, message):
+    print('Received message on topic {}: {}'
+          .format(message.topic, message.payload.decode()))
