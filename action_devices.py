@@ -102,43 +102,26 @@ def onExecute(body):
                     payload = commands(payload, deviceId, execCommand, params)
     return payload
 
+
 def commands(payload, deviceId, execCommand, params):
+    # more clean code as was bedore. dont remembere how state ad parameters ar bond together
     if execCommand == 'action.devices.commands.OnOff':
-        # parameters = params
-        rexecute(deviceId, params)
-        payload['commands'][0]['states'] = params
-        print('ON/OFF')
-        # print(params)
+        print('OnOff')
     elif execCommand == 'action.devices.commands.BrightnessAbsolute':
-        # parameters = params
-        rexecute(deviceId, params)
-        payload['commands'][0]['states'] = params
-        print('ON/OFF')
-        # print(params)
+        print('BrightnessAbsolute')
     elif execCommand == 'action.devices.commands.StartStop':
-        parameters = {'isRunning': params['start']}
-        states = rexecute(deviceId, parameters)
-        payload['commands'][0]['states'] = states
-        print('START/STOP')
-        # print(params)
+        params = {'isRunning': params['start']}
+        print('StartStop')
     elif execCommand == 'action.devices.commands.PauseUnpause':
-        parameters = {'isPaused': params['pause']}
-        states = rexecute(deviceId, parameters)
-        payload['commands'][0]['states'] = states
-        print('PAUSE/UNPAUSE')
-        # print(params)
+        params = {'isPaused': params['pause']}
+        print('PauseUnpause')
     elif execCommand == 'action.devices.commands.GetCameraStream':
-        # this is the static Url for camera stream
-        # needs to be changed to stream link per device!
-        states = rexecute(deviceId, params)
-        payload['commands'][0]['states'] = states
-        print('CAMERA/STREAM')
-        # print(params)
+        print('GetCameraStream')
     elif execCommand == 'action.devices.commands.LockUnlock':
-        parameters = {'isLocked': params['lock']}
-        states = rexecute(deviceId, parameters)
-        payload['commands'][0]['states'] = states
-        print('PAUSE/UNPAUSE')
-        # print(params)
+        params = {'isLocked': params['lock']}
+        print('LockUnlock')
+    # Out from elif
+    states = rexecute(deviceId, params)
+    payload['commands'][0]['states'] = states
 
     return payload
