@@ -98,44 +98,47 @@ def onExecute(body):
                 for execution in command['execution']:
                     execCommand = execution['command']
                     params = execution['params']
-                    if execCommand == 'action.devices.commands.OnOff':
-                        # firebaseRef.child(deviceId).child('OnOff').update({
-                        #   on: params.on,
-                        # });
-                        # parameters = params
-                        rexecute(deviceId, params)
-                        payload['commands'][0]['states'] = params
-                        print('ON/OFF')
-                        print(params)
-                    elif execCommand == 'action.devices.commands.BrightnessAbsolute':
-                        # parameters = params
-                        rexecute(deviceId, params)
-                        payload['commands'][0]['states'] = params
-                        print('ON/OFF')
-                        print(params)
-                    elif execCommand == 'action.devices.commands.StartStop':
-                        parameters = {'isRunning': params['start']}
-                        states = rexecute(deviceId, parameters)
-                        payload['commands'][0]['states'] = states
-                        print('START/STOP')
-                        print(params)
-                    elif execCommand == 'action.devices.commands.PauseUnpause':
-                        parameters = {'isPaused': params['pause']}
-                        states = rexecute(deviceId, parameters)
-                        payload['commands'][0]['states'] = states
-                        print('PAUSE/UNPAUSE')
-                        print(params)
-                    elif execCommand == 'action.devices.commands.GetCameraStream':
-                        # this is the static Url for camera stream
-                        # needs to be changed to stream link per device!
-                        states = rexecute(deviceId, parameters)
-                        payload['commands'][0]['states'] = states
-                        print('CAMERA/STREAM')
-                        print(params)
-                    elif execCommand == 'action.devices.commands.LockUnlock':
-                        parameters = {'isLocked': params['lock']}
-                        states = rexecute(deviceId, parameters)
-                        payload['commands'][0]['states'] = states
-                        print('PAUSE/UNPAUSE')
-                        print(params)
+                    # First try to refactor
+                    payload = commands(payload, deviceId, execCommand, params)
+    return payload
+
+def commands(payload, deviceId, execCommand, params):
+    if execCommand == 'action.devices.commands.OnOff':
+        # parameters = params
+        rexecute(deviceId, params)
+        payload['commands'][0]['states'] = params
+        print('ON/OFF')
+        # print(params)
+    elif execCommand == 'action.devices.commands.BrightnessAbsolute':
+        # parameters = params
+        rexecute(deviceId, params)
+        payload['commands'][0]['states'] = params
+        print('ON/OFF')
+        # print(params)
+    elif execCommand == 'action.devices.commands.StartStop':
+        parameters = {'isRunning': params['start']}
+        states = rexecute(deviceId, parameters)
+        payload['commands'][0]['states'] = states
+        print('START/STOP')
+        # print(params)
+    elif execCommand == 'action.devices.commands.PauseUnpause':
+        parameters = {'isPaused': params['pause']}
+        states = rexecute(deviceId, parameters)
+        payload['commands'][0]['states'] = states
+        print('PAUSE/UNPAUSE')
+        # print(params)
+    elif execCommand == 'action.devices.commands.GetCameraStream':
+        # this is the static Url for camera stream
+        # needs to be changed to stream link per device!
+        states = rexecute(deviceId, params)
+        payload['commands'][0]['states'] = states
+        print('CAMERA/STREAM')
+        # print(params)
+    elif execCommand == 'action.devices.commands.LockUnlock':
+        parameters = {'isLocked': params['lock']}
+        states = rexecute(deviceId, parameters)
+        payload['commands'][0]['states'] = states
+        print('PAUSE/UNPAUSE')
+        # print(params)
+
     return payload
