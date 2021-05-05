@@ -102,15 +102,15 @@ def onExecute(body):
                         # firebaseRef.child(deviceId).child('OnOff').update({
                         #   on: params.on,
                         # });
-                        parameters = params
-                        rexecute(deviceId, parameters)
-                        payload['commands'][0]['states'] = parameters
+                        # parameters = params
+                        rexecute(deviceId, params)
+                        payload['commands'][0]['states'] = params
                         print('ON/OFF')
                         print(params)
                     elif execCommand == 'action.devices.commands.BrightnessAbsolute':
-                        parameters = params
-                        rexecute(deviceId, parameters)
-                        payload['commands'][0]['states'] = parameters
+                        # parameters = params
+                        rexecute(deviceId, params)
+                        payload['commands'][0]['states'] = params
                         print('ON/OFF')
                         print(params)
                     elif execCommand == 'action.devices.commands.StartStop':
