@@ -3,8 +3,8 @@
 # Generate service account file from ENV
 # TEmporary Solution
 from os import environ, path
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
@@ -23,15 +23,8 @@ def generate_file():
         'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
         'client_x509_cert_url': environ.get('CLIENT_X509_CERT_URL')
     }
-    try:
-        print('Try to replace NewLine Exception')
-        data['private_key'] = data['private_key'].replace('\\n', '\n')
-    except:
-        print('Nothing to replace')
-
+    # Try to replace NewLine Exception
+    data['private_key'] = data['private_key'].replace('\\n', '\n')
     print('DICTIONARY Generated')
-    # print(data)
 
-    # with open('service_account_file.json', 'w') as jsonFile:
-    #     json.dump(data, jsonFile, indent=4)
     return data

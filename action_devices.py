@@ -1,10 +1,9 @@
 # Code By DaTi_Co
 import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import db
+from firebase_admin import credentials, db
+
 import config
 from generate_service_account_file import generate_file
-
 
 cred = credentials.Certificate(config.FIREBASE_ADMINSDK_FILE)
 firebase_admin.initialize_app(cred, {
@@ -28,7 +27,6 @@ def report_state():
         state = rquery(device)
         payload['devices']['states'][device] = state
         print(state)
-    # report = json.dumps(payload, indent=4, sort_keys=True)
 
     return payload
 
@@ -104,7 +102,7 @@ def onExecute(body):
 
 
 def commands(payload, deviceId, execCommand, params):
-    # more clean code as was bedore. dont remembere how state ad parameters ar bond together
+    # more clean code as was bedore. dont remember how state ad parameters is used
     if execCommand == 'action.devices.commands.OnOff':
         print('OnOff')
     elif execCommand == 'action.devices.commands.BrightnessAbsolute':
