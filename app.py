@@ -1,17 +1,17 @@
 # coding: utf-8
 # Code By DaTi_Co
 
-import os
-import logging
 import json
-from flask import Flask, request, jsonify, make_response, send_from_directory
+import logging
+import os
 
-# LOCAL
-from action_devices import onSync, onQuery, onExecute, rexecute
-from notifications import mqtt  # I WILL ADD Modules LATER AFTER CLEANING THE CODE
+from flask import Flask, jsonify, make_response, request, send_from_directory
+
+from action_devices import onExecute, onQuery, onSync, rexecute
 from models import db
-from routes import bp
 from my_oauth import oauth
+from notifications import mqtt
+from routes import bp
 
 log = logging.getLogger(__name__)
 
