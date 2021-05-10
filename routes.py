@@ -2,15 +2,16 @@
 # Code By DaTi_Co
 
 import json
-from flask import Blueprint, request, session, current_app
-from flask import render_template, redirect, jsonify
-from werkzeug.security import gen_salt
-from action_devices import onSync, report_state
-from models import db, User, Client
-from my_oauth import oauth, current_user
-import RequestSync as sync
-import ReportState as state
 
+from flask import (Blueprint, current_app, jsonify, redirect, render_template,
+                   request, session)
+from werkzeug.security import gen_salt
+
+import ReportState as state
+import RequestSync as sync
+from action_devices import onSync, report_state
+from models import Client, User, db
+from my_oauth import current_user, oauth
 
 ################################################################
 bp = Blueprint(__name__, 'home')
