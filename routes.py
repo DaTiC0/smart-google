@@ -17,8 +17,17 @@ from my_oauth import current_user, oauth
 bp = Blueprint(__name__, 'home')
 ################################################################
 
+@bp.route('/')
+def index():
+    return render_template('index.html')
 
-@bp.route('/', methods=('GET', 'POST'))
+
+@bp.route('/profile')
+def profile():
+    return render_template('profile.html')
+
+
+@bp.route('/old_login', methods=('GET', 'POST'))
 def home():
     if request.method == 'POST':
         username = request.form.get('username')

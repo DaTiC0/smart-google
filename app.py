@@ -11,7 +11,9 @@ from action_devices import onExecute, onQuery, onSync, rexecute
 from models import db
 from my_oauth import oauth
 from notifications import mqtt
+#blueprints
 from routes import bp
+from auth import auth
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +21,7 @@ log = logging.getLogger(__name__)
 app = Flask(__name__, template_folder='templates')
 app.config.from_object('config')
 app.register_blueprint(bp, url_prefix='')
+app.register_blueprint(auth, url_prefix='')
 # MQTT CONNECT
 mqtt.init_app(app)
 mqtt.subscribe('XXX/notification')
