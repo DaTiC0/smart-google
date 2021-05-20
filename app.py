@@ -86,5 +86,5 @@ def smarthome():
 
 if __name__ == '__main__':
     os.environ['DEBUG'] = 'True'  # While in development
-    db.create_all()
+    db.create_all(app=app)
     app.run()
