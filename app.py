@@ -6,12 +6,12 @@ import logging
 import os
 
 from flask import Flask, jsonify, make_response, request, send_from_directory
-
+from flask_login import LoginManager
 from action_devices import onExecute, onQuery, onSync, rexecute
-from models import db
+from models import db, User
 from my_oauth import oauth
 from notifications import mqtt
-#blueprints
+
 from routes import bp
 from auth import auth
 
@@ -30,8 +30,18 @@ mqtt.subscribe('YYY/status')
 db.init_app(app)
 # OAuth2 Authorisation
 oauth.init_app(app)
+# Flask Login
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login'
+login_manager.init_app(app)
 
 ALLOWED_EXTENSIONS = set(['txt', 'py'])  # for some files to save
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    print(user_id)
+    return User.query.get(int(user_id))
 
 
 def allowed_file(filename):

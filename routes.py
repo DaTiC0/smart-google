@@ -11,7 +11,7 @@ import ReportState as state
 import RequestSync as sync
 from action_devices import onSync, report_state
 from models import Client, User, db
-from my_oauth import current_user, oauth
+from my_oauth import get_current_user, oauth
 
 ################################################################
 bp = Blueprint(__name__, 'home')
@@ -38,7 +38,7 @@ def home():
             db.session.commit()
         session['id'] = user.id
         return redirect('/')
-    user = current_user()
+    user = get_current_user()
     print(user)
     return render_template('home.html', user=user)
 
@@ -54,7 +54,7 @@ def access_token():
 @oauth.authorize_handler
 def authorize(*args, **kwargs):
     print("this is authorize")
-    user = current_user()
+    user = get_current_user()
     print("Authorize User: %s" % user)
     if not user:
         return redirect('/')

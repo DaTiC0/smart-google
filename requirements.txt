@@ -9,3 +9,4 @@ firebase_admin==3.2.1
 #requests-oauthlib==1.3.0
 requests-oauthlib
 python-dotenv==0.15.0
+flask-login==0.4.1
