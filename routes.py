@@ -6,19 +6,29 @@ import json
 from flask import (Blueprint, current_app, jsonify, redirect, render_template,
                    request, session)
 from werkzeug.security import gen_salt
-
+from flask_login import login_required, current_user
 import ReportState as state
 import RequestSync as sync
 from action_devices import onSync, report_state
 from models import Client, User, db
-from my_oauth import current_user, oauth
+from my_oauth import get_current_user, oauth
 
 ################################################################
 bp = Blueprint(__name__, 'home')
 ################################################################
 
+@bp.route('/')
+def index():
+    return render_template('index.html')
 
-@bp.route('/', methods=('GET', 'POST'))
+
+@bp.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html', name=current_user.name)
+
+
+@bp.route('/old_login', methods=('GET', 'POST'))
 def home():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -29,7 +39,7 @@ def home():
             db.session.commit()
         session['id'] = user.id
         return redirect('/')
-    user = current_user()
+    user = get_current_user()
     print(user)
     return render_template('home.html', user=user)
 
@@ -45,7 +55,7 @@ def access_token():
 @oauth.authorize_handler
 def authorize(*args, **kwargs):
     print("this is authorize")
-    user = current_user()
+    user = get_current_user()
     print("Authorize User: %s" % user)
     if not user:
         return redirect('/')
@@ -117,6 +127,7 @@ def sprink():
 
 
 @bp.route('/devices')
+@login_required
 def devices():
     dev_req = onSync('OK')
     device_list = dev_req['devices']

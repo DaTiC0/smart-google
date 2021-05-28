@@ -6,12 +6,14 @@ import logging
 import os
 
 from flask import Flask, jsonify, make_response, request, send_from_directory
-
+from flask_login import LoginManager
 from action_devices import onExecute, onQuery, onSync, rexecute
-from models import db
+from models import db, User
 from my_oauth import oauth
 from notifications import mqtt
+
 from routes import bp
+from auth import auth
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +21,7 @@ log = logging.getLogger(__name__)
 app = Flask(__name__, template_folder='templates')
 app.config.from_object('config')
 app.register_blueprint(bp, url_prefix='')
+app.register_blueprint(auth, url_prefix='')
 # MQTT CONNECT
 mqtt.init_app(app)
 mqtt.subscribe('XXX/notification')
@@ -27,8 +30,18 @@ mqtt.subscribe('YYY/status')
 db.init_app(app)
 # OAuth2 Authorisation
 oauth.init_app(app)
+# Flask Login
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login'
+login_manager.init_app(app)
 
 ALLOWED_EXTENSIONS = set(['txt', 'py'])  # for some files to save
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    print(user_id)
+    return User.query.get(int(user_id))
 
 
 def allowed_file(filename):
@@ -83,5 +96,5 @@ def smarthome():
 
 if __name__ == '__main__':
     os.environ['DEBUG'] = 'True'  # While in development
-    db.create_all()
+    db.create_all(app=app)
     app.run()

@@ -10,7 +10,7 @@ from models import Client, Token, Grant, User
 oauth = OAuth2Provider()
 
 
-def current_user():
+def get_current_user():
     if 'id' in session:
         uid = session['id']
         print(User.query.get(uid))
@@ -42,7 +42,7 @@ def save_grant(client_id, code, request, *args, **kwargs):
         code=code['code'],
         redirect_uri=request.redirect_uri,
         _scopes=' '.join(request.scopes),
-        user=current_user(),
+        user=get_current_user(),
         expires=expires
     )
     print(grant)
