@@ -6,7 +6,7 @@ import json
 from flask import (Blueprint, current_app, jsonify, redirect, render_template,
                    request, session)
 from werkzeug.security import gen_salt
-
+from flask_login import login_required, current_user
 import ReportState as state
 import RequestSync as sync
 from action_devices import onSync, report_state
@@ -23,8 +23,9 @@ def index():
 
 
 @bp.route('/profile')
+@login_required
 def profile():
-    return render_template('profile.html')
+    return render_template('profile.html', name=current_user.name)
 
 
 @bp.route('/old_login', methods=('GET', 'POST'))
@@ -126,6 +127,7 @@ def sprink():
 
 
 @bp.route('/devices')
+@login_required
 def devices():
     dev_req = onSync('OK')
     device_list = dev_req['devices']
