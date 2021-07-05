@@ -28,6 +28,14 @@ Using Firebase for database
 
 ### Prefix or Postfix or some bull**
 
-need to clean code from credentials and personal stuff. after that I will upload files
-
 You need to generate and download `service_account_file.json` from google cloud
+extract from this file 
+'PROJECT_ID'
+'PRIVATE_KEY_ID'
+'PRIVATE_KEY'
+'CLIENT_EMAIL'
+'CLIENT_X509_CERT_URL'
+and export to environment or save in .env file for security
+generate_service_account_file.py file will genearate service accont
+
+
