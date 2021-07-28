@@ -5,7 +5,9 @@ from firebase_admin import credentials, db
 import config
 from generate_service_account_file import generate_file
 
-cred = credentials.Certificate(config.FIREBASE_ADMINSDK_FILE)
+FIREBASE_ADMINSDK_FILE = generate_file()
+cred = credentials.Certificate(FIREBASE_ADMINSDK_FILE)
+# cred = credentials.Certificate(config.FIREBASE_ADMINSDK_FILE)
 firebase_admin.initialize_app(cred, {
     'databaseURL': config.DATABASEURL
 })

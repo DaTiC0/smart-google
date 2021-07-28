@@ -12,6 +12,7 @@ import RequestSync as sync
 from action_devices import onSync, report_state
 from models import Client, User, db
 from my_oauth import get_current_user, oauth
+from generate_service_account_file import generate_file
 
 ################################################################
 bp = Blueprint(__name__, 'home')
@@ -96,7 +97,9 @@ def sync_devices():
     }
     # report state generated
     # now need to generate service account
-    state.main(current_app.config['SERVICE_ACCOUNT_FILE'], report_state_file)
+    SERVICE_ACCOUNT_FILE = generate_file()
+    state.main(SERVICE_ACCOUNT_FILE, report_state_file)
+    # state.main(current_app.config['SERVICE_ACCOUNT_FILE'], report_state_file)
     return "THIS IS TEST NO RETURN"
 
 
