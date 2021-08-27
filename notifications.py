@@ -34,3 +34,9 @@ def handle_subscribe(client, userdata, mid, granted_qos):
 def handle_mytopic(client, userdata, message):
     print('Received message on topic {}: {}'
           .format(message.topic, message.payload.decode()))
+
+
+@mqtt.on_topic('ZZZ/notification')
+def handle_mytopic(client, userdata, message):
+    print('Received message on topic {}: {}'
+          .format(message.topic, message.payload.decode()))
