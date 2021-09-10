@@ -3,16 +3,16 @@
 
 import json
 
-from flask import (Blueprint, current_app, jsonify, redirect, render_template,
-                   request, session)
+from flask import Blueprint, current_app, request, session, jsonify, redirect, render_template, make_response
 from werkzeug.security import gen_salt
 from flask_login import login_required, current_user
 import ReportState as state
-import RequestSync as sync
-from action_devices import onSync, report_state
+from action_devices import onSync, onQuery, onExecute, report_state, request_sync
 from models import Client, User, db
 from my_oauth import get_current_user, oauth
-from generate_service_account_file import generate_file
+# from generate_service_account_file import generate_file
+import logging
+log = logging.getLogger(__name__)
 
 ################################################################
 bp = Blueprint(__name__, 'home')
@@ -84,8 +84,8 @@ def me(req):
 
 @bp.route('/sync')
 def sync_devices():
-    sync.main(current_app.config['API_KEY'],
-              current_app.config['AGENT_USER_ID'])
+    request_sync(current_app.config['API_KEY'],
+                 current_app.config['AGENT_USER_ID'])
     # state.main(current_app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
     # lets fix this
     import random
@@ -97,9 +97,9 @@ def sync_devices():
     }
     # report state generated
     # now need to generate service account
-    SERVICE_ACCOUNT_FILE = generate_file()
-    state.main(SERVICE_ACCOUNT_FILE, report_state_file)
-    # state.main(current_app.config['SERVICE_ACCOUNT_FILE'], report_state_file)
+    # SERVICE_ACCOUNT_FILE = generate_file()
+    # state.main(SERVICE_ACCOUNT_FILE, report_state_file)
+    state.main(report_state_file)
     return "THIS IS TEST NO RETURN"
 
 
@@ -137,4 +137,41 @@ def devices():
     print('Are we OK?')
     return render_template('devices.html', title='Smart-Home', devices=device_list)
 
-################################################################
+
+@bp.route('/smarthome', methods=['POST'])
+def smarthome():
+    payload = {}
+    req = request.get_json(silent=True, force=True)
+    print("INCOMING REQUEST FROM GOOGLE HOME:")
+    print(json.dumps(req, indent=4))
+    requestId = req['requestId']
+    print('requestId: ' + requestId)
+    for i in req['inputs']:
+        if i['intent'] == "action.devices.SYNC":
+            print("\nSYNC ACTION")
+            payload = onSync(req)
+        elif i['intent'] == "action.devices.QUERY":
+            print("\nQUERY ACTION")
+            payload = onQuery(req)
+        elif i['intent'] == "action.devices.EXECUTE":
+            print("\nEXECUTE ACTION")
+            payload = onExecute(req)
+            # NOT GOOD CODE
+            # SEND MQTT
+            deviceId = payload['commands'][0]['ids'][0]
+            params = payload['commands'][0]['states']
+            mqtt.publish(topic=str(deviceId) + '/' + 'notification',
+                         payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+        elif i['intent'] == "action.devices.DISCONNECT":
+            print("\nDISCONNECT ACTION")
+        else:
+            log.error('Unexpected action requested: %s', json.dumps(req))
+            log.error('THIS IS ERROR')
+    # THIS IS RESPONSE
+    result = {
+        'requestId': requestId,
+        'payload': payload,
+    }
+    print('RESPONSE TO GOOGLE HOME')
+    print(json.dumps(result, indent=4))
+    return make_response(jsonify(result))

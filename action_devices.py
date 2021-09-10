@@ -1,16 +1,19 @@
 # Code By DaTi_Co
-import firebase_admin
-from firebase_admin import credentials, db
-
-import config
+from os import environ
+from firebase_admin import credentials, db, initialize_app
+import requests
+from flask import current_app
 from generate_service_account_file import generate_file
 
+
 FIREBASE_ADMINSDK_FILE = generate_file()
+print('By Action Devices')
+DATABASEURL = environ.get('DATABASEURL')  # your Project database URL
+# DATABASEURL = config.DATABASEURL
+# DATABASEURL = current_app.config['DATABASEURL']
+print('This is database URL: {}'.format(DATABASEURL))
 cred = credentials.Certificate(FIREBASE_ADMINSDK_FILE)
-# cred = credentials.Certificate(config.FIREBASE_ADMINSDK_FILE)
-firebase_admin.initialize_app(cred, {
-    'databaseURL': config.DATABASEURL
-})
+initialize_app(cred, {'databaseURL': DATABASEURL})
 
 ref = db.reference('/devices')
 
@@ -59,7 +62,7 @@ def rexecute(deviceId, parameters):
 def onSync(body):
     # handle sync request
     payload = {
-        "agentUserId": config.AGENT_USER_ID,
+        "agentUserId": current_app.config['AGENT_USER_ID'],
         "devices": rsync()
     }
     return payload
@@ -125,3 +128,17 @@ def commands(payload, deviceId, execCommand, params):
     payload['commands'][0]['states'] = states
 
     return payload
+
+
+def request_sync(api_key, agent_user_id):
+    """This function does blah blah."""
+    url = 'https://homegraph.googleapis.com/v1/devices:requestSync?key=' + api_key
+    data = {"agentUserId": agent_user_id, "async": True}
+
+    response = requests.post(url, json=data)
+
+    print('\nRequests Code: %s' %
+          requests.codes['ok'] + '\nResponse Code: %s' % response.status_code)
+    print('\nResponse: ' + response.text)
+
+    return response.status_code == requests.codes['ok']

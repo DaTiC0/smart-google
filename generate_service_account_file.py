@@ -1,7 +1,7 @@
 # coding: utf-8
 # Code By DaTi_Co
 # Generate service account file from ENV
-# TEmporary Solution
+# Temporary Solution
 from os import environ, path
 
 from dotenv import load_dotenv
@@ -23,8 +23,14 @@ def generate_file():
         'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
         'client_x509_cert_url': environ.get('CLIENT_X509_CERT_URL')
     }
-    # Try to replace NewLine Exception
-    data['private_key'] = data['private_key'].replace('\\n', '\n')
-    print('DICTIONARY Generated')
+
+    try:
+        print('Try to replace NewLine Exception')
+        data['private_key'] = data['private_key'].replace('\\n', '\n')
+    except AttributeError as e:
+        print('Error:\n{}\nThis is DATA:\n{}'.format(e, data))
+    except Exception as exception:
+        print(exception, False)
+    print('Dictionary Generated')
 
     return data
