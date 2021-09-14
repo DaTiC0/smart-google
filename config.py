@@ -4,10 +4,12 @@
 # App Configuration File
 from os import environ, path
 from dotenv import load_dotenv
+from generate_service_account_file import generate_file
 
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
 
+data = generate_file()
 
 class Config(object):
     # General Config
@@ -26,7 +28,7 @@ class Config(object):
     API_KEY = environ.get('API_KEY')
     AGENT_USER_ID = environ.get('AGENT_USER_ID')
     DATABASEURL = environ.get('DATABASEURL')  # your Project database URL
-    SERVICE_ACCOUNT_DATA = environ.get('SERVICE_ACCOUNT_DATA')
+    SERVICE_ACCOUNT_DATA = data
 
 
 class ProductionConfig(Config):

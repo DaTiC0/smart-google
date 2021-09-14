@@ -1,5 +1,4 @@
 from flask_mqtt import Mqtt
-from action_devices import rexecute
 
 mqtt = Mqtt()
 

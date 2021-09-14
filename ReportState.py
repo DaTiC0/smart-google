@@ -1,9 +1,9 @@
 import time
 import json
-
+from flask import current_app
 from google.auth import crypt, jwt
 import requests
-from generate_service_account_file import generate_file
+
 
 def generate_jwt(service_account):
     signer = crypt.RSASigner.from_string(service_account['private_key'])
@@ -47,7 +47,7 @@ def report_state(access_token, report_state_file):
 
 
 def main(report_state_file):
-    service_account = generate_file()
+    service_account = current_app.config['SERVICE_ACCOUNT_DATA']
     print('By ReportState')
     signed_jwt = generate_jwt(service_account).decode("utf-8")  # Decode
     access_token = get_access_token(signed_jwt)
