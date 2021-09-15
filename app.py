@@ -4,7 +4,7 @@ import os
 
 from flask import Flask, send_from_directory
 from flask_login import LoginManager
-
+from firebase_admin import credentials, initialize_app
 from auth import auth
 from models import User, db
 from my_oauth import oauth
@@ -25,8 +25,8 @@ app.register_blueprint(bp, url_prefix='')
 app.register_blueprint(auth, url_prefix='')
 # MQTT CONNECT
 mqtt.init_app(app)
-mqtt.subscribe('XXX/notification')
-mqtt.subscribe('YYY/status')
+mqtt.subscribe('+/notification')
+mqtt.subscribe('+/status')
 # SQLAlchemy DATABASE
 db.init_app(app)
 print('SQLAlchemyURI: ' + app.config['SQLALCHEMY_DATABASE_URI'])
@@ -37,6 +37,12 @@ oauth.init_app(app)
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.init_app(app)
+# FIREBASE_CONFIG environment variable can be added
+FIREBASE_ADMINSDK_FILE = app.config['SERVICE_ACCOUNT_DATA']
+FIREBASE_CREDENTIALS = credentials.Certificate(FIREBASE_ADMINSDK_FILE)
+FIREBASE_DATABASEURL = app.config['DATABASEURL']
+FIREBASE_OPTIONS = {'databaseURL': FIREBASE_DATABASEURL}
+initialize_app(FIREBASE_CREDENTIALS, FIREBASE_OPTIONS)
 
 ALLOWED_EXTENSIONS = set(['txt', 'py'])  # for some files to save
 

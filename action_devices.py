@@ -1,24 +1,18 @@
 # Code By DaTi_Co
 from os import environ
-from firebase_admin import credentials, db, initialize_app
+from firebase_admin import db
 import requests
 from flask import current_app
-from generate_service_account_file import generate_file
 
-
-FIREBASE_ADMINSDK_FILE = generate_file()
-print('By Action Devices')
-DATABASEURL = environ.get('DATABASEURL')  # your Project database URL
-# DATABASEURL = config.DATABASEURL
-# DATABASEURL = current_app.config['DATABASEURL']
-print('This is database URL: {}'.format(DATABASEURL))
-cred = credentials.Certificate(FIREBASE_ADMINSDK_FILE)
-initialize_app(cred, {'databaseURL': DATABASEURL})
-
-ref = db.reference('/devices')
+# firebase initialisation problem was fixed?
+def reference():
+    # Firebase Realtime Database module.
+    ref = db.reference('/devices')
+    return ref
 
 
 def report_state():
+    ref = reference()
     # Getting devices from Firebase as list
     devices = list(ref.get().keys())
     payload = {
@@ -37,6 +31,7 @@ def report_state():
 
 
 def rsync():
+    ref = reference()
     snapshot = ref.get()
     DEVICES = []
     for k, v in snapshot.items():
@@ -51,10 +46,12 @@ def rsync():
 
 
 def rquery(deviceId):
+    ref = reference()
     return ref.child(deviceId).child('states').get()
 
 
 def rexecute(deviceId, parameters):
+    ref = reference()
     ref.child(deviceId).child('states').update(parameters)
     return ref.child(deviceId).child('states').get()
 
