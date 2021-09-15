@@ -4,19 +4,17 @@
 import json
 
 from flask import Blueprint, current_app, request, session, jsonify, redirect, render_template, make_response
-from werkzeug.security import gen_salt
 from flask_login import login_required, current_user
 import ReportState as state
 from action_devices import onSync, onQuery, onExecute, report_state, request_sync
 from models import Client, User, db
 from my_oauth import get_current_user, oauth
-# from generate_service_account_file import generate_file
+from notifications import mqtt
 import logging
-log = logging.getLogger(__name__)
 
-################################################################
+log = logging.getLogger(__name__)
 bp = Blueprint(__name__, 'home')
-################################################################
+
 
 @bp.route('/')
 def index():
@@ -27,22 +25,6 @@ def index():
 @login_required
 def profile():
     return render_template('profile.html', name=current_user.name)
-
-
-@bp.route('/old_login', methods=('GET', 'POST'))
-def home():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        user = User.query.filter_by(username=username).first()
-        if not user:
-            user = User(username=username)
-            db.session.add(user)
-            db.session.commit()
-        session['id'] = user.id
-        return redirect('/')
-    user = get_current_user()
-    print(user)
-    return render_template('home.html', user=user)
 
 
 @bp.route('/oauth/token', methods=['POST'])
@@ -80,14 +62,12 @@ def me(req):
     user = req.user
     return jsonify(username=user.username)
 
-################################################################
 
 @bp.route('/sync')
 def sync_devices():
     request_sync(current_app.config['API_KEY'],
                  current_app.config['AGENT_USER_ID'])
-    # state.main(current_app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
-    # lets fix this
+
     import random
     n = random.randint(10000000000000000000, 90000000000000000000)
     report_state_file = {
@@ -95,10 +75,7 @@ def sync_devices():
         'agentUserId': current_app.config['AGENT_USER_ID'],
         'payload': report_state(),
     }
-    # report state generated
-    # now need to generate service account
-    # SERVICE_ACCOUNT_FILE = generate_file()
-    # state.main(SERVICE_ACCOUNT_FILE, report_state_file)
+
     state.main(report_state_file)
     return "THIS IS TEST NO RETURN"
 
@@ -127,7 +104,7 @@ def ifttt():
 @bp.route('/sprink')
 def sprink():
     return "NOT OK"
-
+#################################################
 
 @bp.route('/devices')
 @login_required
@@ -156,8 +133,7 @@ def smarthome():
         elif i['intent'] == "action.devices.EXECUTE":
             print("\nEXECUTE ACTION")
             payload = onExecute(req)
-            # NOT GOOD CODE
-            # SEND MQTT
+            # SEND TEST MQTT
             deviceId = payload['commands'][0]['ids'][0]
             params = payload['commands'][0]['states']
             mqtt.publish(topic=str(deviceId) + '/' + 'notification',

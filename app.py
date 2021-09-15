@@ -4,7 +4,6 @@ import os
 
 from flask import Flask, send_from_directory
 from flask_login import LoginManager
-from flask_sqlalchemy import SQLAlchemy
 
 from auth import auth
 from models import User, db
