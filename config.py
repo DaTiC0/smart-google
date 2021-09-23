@@ -3,6 +3,7 @@
 # Config.py
 # App Configuration File
 from os import environ, path
+import secrets
 from dotenv import load_dotenv
 from generate_service_account_file import generate_file
 
@@ -32,15 +33,14 @@ class Config(object):
 
 
 class ProductionConfig(Config):
-    """Uses production database server."""
-    DATABASEURL = '192.168.1.100'  # change to some your URL
+    DEBUG = False
+    # DATABASEURL = '192.168.1.100'  # change to some your URL
 
 
 class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///data.sqlite'
-    # AGENT_USER_ID = 1111.11111111
-
+    SECRET_KEY = secrets.token_urlsafe(16)
 
 class TestingConfig(Config):
     DB_SERVER = 'localhost'
