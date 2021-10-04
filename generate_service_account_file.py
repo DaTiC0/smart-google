@@ -28,7 +28,7 @@ def generate_file():
         print('Try to replace NewLine Exception')
         data['private_key'] = data['private_key'].replace('\\n', '\n')
     except AttributeError as e:
-        print('Error:\n{}\nThis is DATA:\n{}'.format(e, data))
+        print('Error in Data')
     except Exception as exception:
         print(exception, False)
     print('Dictionary Generated')
