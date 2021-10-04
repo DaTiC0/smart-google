@@ -12,7 +12,7 @@ load_dotenv(path.join(basedir, '.env'))
 
 data = generate_file()
 
-class Config(object):
+class Config:
     # General Config
     DEBUG = False
     TESTING = False
