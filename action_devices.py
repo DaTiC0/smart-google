@@ -6,9 +6,7 @@ from flask import current_app
 
 # firebase initialisation problem was fixed?
 def reference():
-    # Firebase Realtime Database module.
-    ref = db.reference('/devices')
-    return ref
+    return db.reference('/devices')
 
 
 def report_state():
@@ -57,12 +55,10 @@ def rexecute(deviceId, parameters):
 
 
 def onSync(body):
-    # handle sync request
-    payload = {
+    return {
         "agentUserId": current_app.config['AGENT_USER_ID'],
         "devices": rsync()
     }
-    return payload
 
 
 def onQuery(body):
