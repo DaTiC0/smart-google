@@ -86,16 +86,12 @@ def ifttt():
 
     print('INCOMING IFTTT:')
     print(json.dumps(req, indent=4))
-    # print(req)
-
-    result = {
+    return {
         "data": {
             'x': 'DaTi',
             'y': 'Comnpany'
         }
     }
-
-    return result
 
 
 # Created for DIY Sprinkler MADE BY DATI_CO (ME)
