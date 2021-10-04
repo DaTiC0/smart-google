@@ -36,6 +36,6 @@ def handle_mytopic(client, userdata, message):
 
 
 @mqtt.on_topic('ZZZ/notification')
-def handle_mytopic(client, userdata, message):
+def handle_ztopic(client, userdata, message):
     print('Received message on topic {}: {}'
           .format(message.topic, message.payload.decode()))
