@@ -56,7 +56,7 @@ def load_token(access_token=None, refresh_token=None):
     print("token getter")
     if access_token:
         return Token.query.filter_by(access_token=access_token).first()
-    elif refresh_token:
+    if refresh_token:
         return Token.query.filter_by(refresh_token=refresh_token).first()
 
 
