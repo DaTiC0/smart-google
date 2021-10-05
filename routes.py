@@ -117,17 +117,13 @@ def smarthome():
     req = request.get_json(silent=True, force=True)
     print("INCOMING REQUEST FROM GOOGLE HOME:")
     print(json.dumps(req, indent=4))
-    # requestId = req['requestId']
-    # print('requestId: ' + requestId)
     for i in req['inputs']:
+        print(i['intent'])
         if i['intent'] == "action.devices.SYNC":
-            print("\nSYNC ACTION")
             payload = onSync(req)
         elif i['intent'] == "action.devices.QUERY":
-            print("\nQUERY ACTION")
             payload = onQuery(req)
         elif i['intent'] == "action.devices.EXECUTE":
-            print("\nEXECUTE ACTION")
             payload = onExecute(req)
             # SEND TEST MQTT
             deviceId = payload['commands'][0]['ids'][0]
