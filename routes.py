@@ -117,8 +117,8 @@ def smarthome():
     req = request.get_json(silent=True, force=True)
     print("INCOMING REQUEST FROM GOOGLE HOME:")
     print(json.dumps(req, indent=4))
-    requestId = req['requestId']
-    print('requestId: ' + requestId)
+    # requestId = req['requestId']
+    # print('requestId: ' + requestId)
     for i in req['inputs']:
         if i['intent'] == "action.devices.SYNC":
             print("\nSYNC ACTION")
@@ -139,9 +139,9 @@ def smarthome():
         else:
             log.error('Unexpected action requested: %s', json.dumps(req))
             log.error('THIS IS ERROR')
-    # THIS IS RESPONSE
+
     result = {
-        'requestId': requestId,
+        'requestId': req['requestId'],
         'payload': payload,
     }
     print('RESPONSE TO GOOGLE HOME')
