@@ -1,8 +1,10 @@
 # Code By DaTi_Co
-from os import environ
+import json
 from firebase_admin import db
 import requests
 from flask import current_app
+from notifications import mqtt
+
 
 # firebase initialisation problem was fixed?
 def reference():
@@ -120,6 +122,27 @@ def commands(payload, deviceId, execCommand, params):
     states = rexecute(deviceId, params)
     payload['commands'][0]['states'] = states
 
+    return payload
+
+
+def actions(req):
+    for i in req['inputs']:
+        print(i['intent'])
+        if i['intent'] == "action.devices.SYNC":
+            payload = onSync(req)
+        elif i['intent'] == "action.devices.QUERY":
+            payload = onQuery(req)
+        elif i['intent'] == "action.devices.EXECUTE":
+            payload = onExecute(req)
+            # SEND TEST MQTT
+            deviceId = payload['commands'][0]['ids'][0]
+            params = payload['commands'][0]['states']
+            mqtt.publish(topic=str(deviceId) + '/' + 'notification',
+                         payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+        elif i['intent'] == "action.devices.DISCONNECT":
+            print("\nDISCONNECT ACTION")
+        else:
+            print('Unexpected action requested: %s', json.dumps(req))
     return payload
 
 

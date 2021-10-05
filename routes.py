@@ -3,16 +3,16 @@
 
 import json
 
-from flask import Blueprint, current_app, request, session, jsonify, redirect, render_template, make_response
+from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response
 from flask_login import login_required, current_user
 import ReportState as state
-from action_devices import onSync, onQuery, onExecute, report_state, request_sync
-from models import Client, User, db
+from action_devices import onSync, report_state, request_sync, actions #, onQuery, onExecute
+from models import Client
 from my_oauth import get_current_user, oauth
-from notifications import mqtt
-import logging
+# from notifications import mqtt
+# import logging
 
-log = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
 bp = Blueprint(__name__, 'home')
 
 
@@ -113,29 +113,28 @@ def devices():
 
 @bp.route('/smarthome', methods=['POST'])
 def smarthome():
-    payload = {}
     req = request.get_json(silent=True, force=True)
     print("INCOMING REQUEST FROM GOOGLE HOME:")
     print(json.dumps(req, indent=4))
-    for i in req['inputs']:
-        print(i['intent'])
-        if i['intent'] == "action.devices.SYNC":
-            payload = onSync(req)
-        elif i['intent'] == "action.devices.QUERY":
-            payload = onQuery(req)
-        elif i['intent'] == "action.devices.EXECUTE":
-            payload = onExecute(req)
-            # SEND TEST MQTT
-            deviceId = payload['commands'][0]['ids'][0]
-            params = payload['commands'][0]['states']
-            mqtt.publish(topic=str(deviceId) + '/' + 'notification',
-                         payload=str(params), qos=0)  # SENDING MQTT MESSAGE
-        elif i['intent'] == "action.devices.DISCONNECT":
-            print("\nDISCONNECT ACTION")
-        else:
-            log.error('Unexpected action requested: %s', json.dumps(req))
-            log.error('THIS IS ERROR')
-
+    # for i in req['inputs']:
+    #     print(i['intent'])
+    #     if i['intent'] == "action.devices.SYNC":
+    #         payload = onSync(req)
+    #     elif i['intent'] == "action.devices.QUERY":
+    #         payload = onQuery(req)
+    #     elif i['intent'] == "action.devices.EXECUTE":
+    #         payload = onExecute(req)
+    #         # SEND TEST MQTT
+    #         deviceId = payload['commands'][0]['ids'][0]
+    #         params = payload['commands'][0]['states']
+    #         mqtt.publish(topic=str(deviceId) + '/' + 'notification',
+    #                      payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+    #     elif i['intent'] == "action.devices.DISCONNECT":
+    #         print("\nDISCONNECT ACTION")
+    #     else:
+    #         log.error('Unexpected action requested: %s', json.dumps(req))
+    #         log.error('THIS IS ERROR')
+    payload = actions(req)
     result = {
         'requestId': req['requestId'],
         'payload': payload,
