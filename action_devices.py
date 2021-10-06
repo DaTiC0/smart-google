@@ -129,7 +129,7 @@ def actions(req):
     for i in req['inputs']:
         print(i['intent'])
         if i['intent'] == "action.devices.SYNC":
-            payload = onSync(req)
+            payload = onSync()
         elif i['intent'] == "action.devices.QUERY":
             payload = onQuery(req)
         elif i['intent'] == "action.devices.EXECUTE":
