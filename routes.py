@@ -98,7 +98,7 @@ def ifttt():
 @bp.route('/sprink')
 def sprink():
     return "NOT OK"
-#################################################
+
 
 @bp.route('/devices')
 @login_required
