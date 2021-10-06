@@ -103,7 +103,7 @@ def sprink():
 @bp.route('/devices')
 @login_required
 def devices():
-    dev_req = onSync('OK')
+    dev_req = onSync()
     device_list = dev_req['devices']
     print('Are we OK?')
     return render_template('devices.html', title='Smart-Home', devices=device_list)
