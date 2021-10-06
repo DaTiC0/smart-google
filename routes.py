@@ -6,13 +6,11 @@ import json
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response
 from flask_login import login_required, current_user
 import ReportState as state
-from action_devices import onSync, report_state, request_sync, actions #, onQuery, onExecute
+from action_devices import onSync, report_state, request_sync, actions
 from models import Client
 from my_oauth import get_current_user, oauth
-# from notifications import mqtt
-# import logging
 
-# log = logging.getLogger(__name__)
+
 bp = Blueprint(__name__, 'home')
 
 
@@ -116,24 +114,6 @@ def smarthome():
     req = request.get_json(silent=True, force=True)
     print("INCOMING REQUEST FROM GOOGLE HOME:")
     print(json.dumps(req, indent=4))
-    # for i in req['inputs']:
-    #     print(i['intent'])
-    #     if i['intent'] == "action.devices.SYNC":
-    #         payload = onSync(req)
-    #     elif i['intent'] == "action.devices.QUERY":
-    #         payload = onQuery(req)
-    #     elif i['intent'] == "action.devices.EXECUTE":
-    #         payload = onExecute(req)
-    #         # SEND TEST MQTT
-    #         deviceId = payload['commands'][0]['ids'][0]
-    #         params = payload['commands'][0]['states']
-    #         mqtt.publish(topic=str(deviceId) + '/' + 'notification',
-    #                      payload=str(params), qos=0)  # SENDING MQTT MESSAGE
-    #     elif i['intent'] == "action.devices.DISCONNECT":
-    #         print("\nDISCONNECT ACTION")
-    #     else:
-    #         log.error('Unexpected action requested: %s', json.dumps(req))
-    #         log.error('THIS IS ERROR')
     payload = actions(req)
     result = {
         'requestId': req['requestId'],
