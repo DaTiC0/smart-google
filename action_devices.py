@@ -56,7 +56,7 @@ def rexecute(deviceId, parameters):
     return ref.child(deviceId).child('states').get()
 
 
-def onSync(body):
+def onSync():
     return {
         "agentUserId": current_app.config['AGENT_USER_ID'],
         "devices": rsync()
