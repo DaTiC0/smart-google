@@ -1,5 +1,5 @@
 gunicorn==19.9.0
-Flask==1.1.1
+Flask==2.0.2
 Flask-MQTT==1.1.1
 Flask-OAuthlib==0.9.5
 Flask-SQLAlchemy==2.5.1
