@@ -3,20 +3,16 @@
 
 import json
 
-from flask import (Blueprint, current_app, jsonify, redirect, render_template,
-                   request, session)
-from werkzeug.security import gen_salt
+from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response
 from flask_login import login_required, current_user
 import ReportState as state
-import RequestSync as sync
-from action_devices import onSync, report_state
-from models import Client, User, db
+from action_devices import onSync, report_state, request_sync, actions
+from models import Client
 from my_oauth import get_current_user, oauth
-from generate_service_account_file import generate_file
 
-################################################################
+
 bp = Blueprint(__name__, 'home')
-################################################################
+
 
 @bp.route('/')
 def index():
@@ -27,22 +23,6 @@ def index():
 @login_required
 def profile():
     return render_template('profile.html', name=current_user.name)
-
-
-@bp.route('/old_login', methods=('GET', 'POST'))
-def home():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        user = User.query.filter_by(username=username).first()
-        if not user:
-            user = User(username=username)
-            db.session.add(user)
-            db.session.commit()
-        session['id'] = user.id
-        return redirect('/')
-    user = get_current_user()
-    print(user)
-    return render_template('home.html', user=user)
 
 
 @bp.route('/oauth/token', methods=['POST'])
@@ -80,14 +60,12 @@ def me(req):
     user = req.user
     return jsonify(username=user.username)
 
-################################################################
 
 @bp.route('/sync')
 def sync_devices():
-    sync.main(current_app.config['API_KEY'],
-              current_app.config['AGENT_USER_ID'])
-    # state.main(current_app.config['SERVICE_ACCOUNT_FILE'], 'report_state_file.json')
-    # lets fix this
+    request_sync(current_app.config['API_KEY'],
+                 current_app.config['AGENT_USER_ID'])
+
     import random
     n = random.randint(10000000000000000000, 90000000000000000000)
     report_state_file = {
@@ -95,11 +73,8 @@ def sync_devices():
         'agentUserId': current_app.config['AGENT_USER_ID'],
         'payload': report_state(),
     }
-    # report state generated
-    # now need to generate service account
-    SERVICE_ACCOUNT_FILE = generate_file()
-    state.main(SERVICE_ACCOUNT_FILE, report_state_file)
-    # state.main(current_app.config['SERVICE_ACCOUNT_FILE'], report_state_file)
+
+    state.main(report_state_file)
     return "THIS IS TEST NO RETURN"
 
 
@@ -109,16 +84,12 @@ def ifttt():
 
     print('INCOMING IFTTT:')
     print(json.dumps(req, indent=4))
-    # print(req)
-
-    result = {
+    return {
         "data": {
             'x': 'DaTi',
             'y': 'Comnpany'
         }
     }
-
-    return result
 
 
 # Created for DIY Sprinkler MADE BY DATI_CO (ME)
@@ -132,9 +103,22 @@ def sprink():
 @bp.route('/devices')
 @login_required
 def devices():
-    dev_req = onSync('OK')
+    dev_req = onSync()
     device_list = dev_req['devices']
     print('Are we OK?')
     return render_template('devices.html', title='Smart-Home', devices=device_list)
 
-################################################################
+
+@bp.route('/smarthome', methods=['POST'])
+def smarthome():
+    req = request.get_json(silent=True, force=True)
+    print("INCOMING REQUEST FROM GOOGLE HOME:")
+    print(json.dumps(req, indent=4))
+    payload = actions(req)
+    result = {
+        'requestId': req['requestId'],
+        'payload': payload,
+    }
+    print('RESPONSE TO GOOGLE HOME')
+    print(json.dumps(result, indent=4))
+    return make_response(jsonify(result))

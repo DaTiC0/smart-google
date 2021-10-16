@@ -1,7 +1,4 @@
-# ORM FOR MY STUPID DB
-# I hate DB
-# I will migrate it to firebase where
-# I store all my hardware or virtual device information
+# models.py
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 

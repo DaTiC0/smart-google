@@ -1,21 +1,18 @@
 # Code By DaTi_Co
-import firebase_admin
-from firebase_admin import credentials, db
+import json
+from firebase_admin import db
+import requests
+from flask import current_app
+from notifications import mqtt
 
-import config
-from generate_service_account_file import generate_file
 
-FIREBASE_ADMINSDK_FILE = generate_file()
-cred = credentials.Certificate(FIREBASE_ADMINSDK_FILE)
-# cred = credentials.Certificate(config.FIREBASE_ADMINSDK_FILE)
-firebase_admin.initialize_app(cred, {
-    'databaseURL': config.DATABASEURL
-})
-
-ref = db.reference('/devices')
+# firebase initialisation problem was fixed?
+def reference():
+    return db.reference('/devices')
 
 
 def report_state():
+    ref = reference()
     # Getting devices from Firebase as list
     devices = list(ref.get().keys())
     payload = {
@@ -34,6 +31,7 @@ def report_state():
 
 
 def rsync():
+    ref = reference()
     snapshot = ref.get()
     DEVICES = []
     for k, v in snapshot.items():
@@ -48,21 +46,21 @@ def rsync():
 
 
 def rquery(deviceId):
+    ref = reference()
     return ref.child(deviceId).child('states').get()
 
 
 def rexecute(deviceId, parameters):
+    ref = reference()
     ref.child(deviceId).child('states').update(parameters)
     return ref.child(deviceId).child('states').get()
 
 
-def onSync(body):
-    # handle sync request
-    payload = {
-        "agentUserId": config.AGENT_USER_ID,
+def onSync():
+    return {
+        "agentUserId": current_app.config['AGENT_USER_ID'],
         "devices": rsync()
     }
-    return payload
 
 
 def onQuery(body):
@@ -125,3 +123,38 @@ def commands(payload, deviceId, execCommand, params):
     payload['commands'][0]['states'] = states
 
     return payload
+
+
+def actions(req):
+    for i in req['inputs']:
+        print(i['intent'])
+        if i['intent'] == "action.devices.SYNC":
+            payload = onSync()
+        elif i['intent'] == "action.devices.QUERY":
+            payload = onQuery(req)
+        elif i['intent'] == "action.devices.EXECUTE":
+            payload = onExecute(req)
+            # SEND TEST MQTT
+            deviceId = payload['commands'][0]['ids'][0]
+            params = payload['commands'][0]['states']
+            mqtt.publish(topic=str(deviceId) + '/' + 'notification',
+                         payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+        elif i['intent'] == "action.devices.DISCONNECT":
+            print("\nDISCONNECT ACTION")
+        else:
+            print('Unexpected action requested: %s', json.dumps(req))
+    return payload
+
+
+def request_sync(api_key, agent_user_id):
+    """This function does blah blah."""
+    url = 'https://homegraph.googleapis.com/v1/devices:requestSync?key=' + api_key
+    data = {"agentUserId": agent_user_id, "async": True}
+
+    response = requests.post(url, json=data)
+
+    print('\nRequests Code: %s' %
+          requests.codes['ok'] + '\nResponse Code: %s' % response.status_code)
+    print('\nResponse: ' + response.text)
+
+    return response.status_code == requests.codes['ok']
