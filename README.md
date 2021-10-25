@@ -36,6 +36,11 @@ extract from this file
 'CLIENT_EMAIL'
 'CLIENT_X509_CERT_URL'
 and export to environment or save in .env file for security
-generate_service_account_file.py file will genearate service accont
+generate_service_account_file.py file will genearate service account
+
+### TESTING
+
+Some Testing ENV
+
 
 
