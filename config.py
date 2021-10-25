@@ -12,6 +12,7 @@ load_dotenv(path.join(basedir, '.env'))
 
 data = generate_file()
 
+
 class Config:
     # General Config
     DEBUG = False
@@ -41,6 +42,7 @@ class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///data.sqlite'
     SECRET_KEY = secrets.token_urlsafe(16)
+
 
 class TestingConfig(Config):
     DB_SERVER = 'localhost'

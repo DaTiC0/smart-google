@@ -49,17 +49,20 @@ ALLOWED_EXTENSIONS = set(['txt', 'py'])  # for some files to save
 
 @login_manager.user_loader
 def load_user(user_id):
+    """Get User ID"""
     print(user_id)
     return User.query.get(int(user_id))
 
 
 def allowed_file(filename):
+    """File Uploading Function"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
+    """File formats for upload folder"""
     return send_from_directory(app.config['UPLOAD_FOLDER'],
                                filename)
 

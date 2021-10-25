@@ -7,7 +7,7 @@ db = SQLAlchemy()
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(40), unique=True) # this will be removed after
+    username = db.Column(db.String(40), unique=True)  # this will be removed
     #
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))

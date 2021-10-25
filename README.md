@@ -29,7 +29,7 @@ Using Firebase for database
 ### Prefix or Postfix or some bull**
 
 You need to generate and download `service_account_file.json` from google cloud
-extract from this file 
+extract from this file
 'PROJECT_ID'
 'PRIVATE_KEY_ID'
 'PRIVATE_KEY'
@@ -41,6 +41,3 @@ generate_service_account_file.py file will genearate service account
 ### TESTING
 
 Some Testing ENV
-
-
-

@@ -1,4 +1,6 @@
+# coding: utf-8
 # Code By DaTi_Co
+
 import json
 from firebase_admin import db
 import requests
@@ -102,7 +104,8 @@ def onExecute(body):
 
 
 def commands(payload, deviceId, execCommand, params):
-    # more clean code as was bedore. dont remember how state ad parameters is used
+    """ more clean code as was bedore.
+    dont remember how state ad parameters is used """
     if execCommand == 'action.devices.commands.OnOff':
         print('OnOff')
     elif execCommand == 'action.devices.commands.BrightnessAbsolute':
