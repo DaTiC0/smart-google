@@ -40,7 +40,6 @@ class ProductionConfig(Config):
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///data.sqlite'
     SECRET_KEY = secrets.token_urlsafe(16)
 
 

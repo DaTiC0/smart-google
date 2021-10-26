@@ -29,8 +29,6 @@ mqtt.subscribe('+/notification')
 mqtt.subscribe('+/status')
 # SQLAlchemy DATABASE
 db.init_app(app)
-print('SQLAlchemyURI: ' + app.config['SQLALCHEMY_DATABASE_URI'])
-db.create_all(app=app)  # ????
 # OAuth2 Authorisation
 oauth.init_app(app)
 # Flask Login
@@ -65,6 +63,14 @@ def uploaded_file(filename):
     """File formats for upload folder"""
     return send_from_directory(app.config['UPLOAD_FOLDER'],
                                filename)
+
+
+@app.before_first_request
+def create_db_command():
+    """Search for tables and if there is no data create new tables."""
+    print('DB Engine: ' + app.config['SQLALCHEMY_DATABASE_URI'].split(':')[0])
+    db.create_all(app=app)
+    print('Initialized the database.')
 
 
 if __name__ == '__main__':
