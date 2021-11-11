@@ -6,6 +6,7 @@ from firebase_admin import db
 import requests
 from flask import current_app
 from notifications import mqtt
+import ReportState as state
 
 
 # firebase initialisation problem was fixed?
@@ -161,3 +162,17 @@ def request_sync(api_key, agent_user_id):
     print('\nResponse: ' + response.text)
 
     return response.status_code == requests.codes['ok']
+
+
+def report_state():
+    import random
+    n = random.randint(10**19, 10**20)
+    report_state_file = {
+        'requestId': str(n),
+        'agentUserId': current_app.config['AGENT_USER_ID'],
+        'payload': rstate(),
+    }
+
+    state.main(report_state_file)
+
+    return "THIS IS TEST NO RETURN"

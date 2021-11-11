@@ -5,8 +5,7 @@ import json
 
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response
 from flask_login import login_required, current_user
-import ReportState as state
-from action_devices import onSync, rstate, request_sync, actions
+from action_devices import onSync, report_state, request_sync, actions
 from models import Client
 from my_oauth import get_current_user, oauth
 
@@ -65,16 +64,8 @@ def me(req):
 def sync_devices():
     request_sync(current_app.config['API_KEY'],
                  current_app.config['AGENT_USER_ID'])
+    report_state()
 
-    import random
-    n = random.randint(10**19, 10**20)
-    report_state_file = {
-        'requestId': str(n),
-        'agentUserId': current_app.config['AGENT_USER_ID'],
-        'payload': rstate(),
-    }
-
-    state.main(report_state_file)
     return "THIS IS TEST NO RETURN"
 
 
