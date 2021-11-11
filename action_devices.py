@@ -13,7 +13,7 @@ def reference():
     return db.reference('/devices')
 
 
-def report_state():
+def rstate():
     ref = reference()
     # Getting devices from Firebase as list
     devices = list(ref.get().keys())
