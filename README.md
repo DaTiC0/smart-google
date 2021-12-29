@@ -1,6 +1,6 @@
 # Smart-Google
 
-Google Home integration to your custom devices by Google action and Python
+Google Home integration to your custom devices by Google action and Python whit Flask Framework
 
 ## Environment
 
@@ -26,7 +26,7 @@ Using Firebase for database
 - CLIENT_EMAIL
 - CLIENT_X509_CERT_URL
 
-### Prefix or Postfix or some bull**
+### Google Service Account
 
 You need to generate and download `service_account_file.json` from google cloud
 extract from this file
@@ -40,4 +40,4 @@ generate_service_account_file.py file will genearate service account
 
 ### TESTING
 
-Some Testing ENV
+Some Testing in VENV just for now. container env is coming .. 

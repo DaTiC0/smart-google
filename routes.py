@@ -71,24 +71,7 @@ def sync_devices():
 
 @bp.route('/IFTTT', methods=['POST'])
 def ifttt():
-    req = request.get_json(silent=True, force=True)
-
-    print('INCOMING IFTTT:')
-    print(json.dumps(req, indent=4))
-    return {
-        "data": {
-            'x': 'DaTi',
-            'y': 'Comnpany'
-        }
-    }
-
-
-# Created for DIY Sprinkler MADE BY DATI_CO (ME)
-# Sprinkler code not finished
-# Using Micropython on microcontrollers
-@bp.route('/sprink')
-def sprink():
-    return "NOT OK"
+    pass
 
 
 @bp.route('/devices')
