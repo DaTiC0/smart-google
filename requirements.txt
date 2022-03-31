@@ -9,4 +9,4 @@ firebase_admin==3.2.1
 PyMySQL==1.0.2
 requests-oauthlib
 python-dotenv==0.15.0
-Flask-Login==0.4.1
+Flask-Login==0.6.0
