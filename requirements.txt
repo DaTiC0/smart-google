@@ -2,7 +2,7 @@ gunicorn==19.9.0
 Flask==1.1.1
 Flask-MQTT==1.1.1
 Flask-OAuthlib==0.9.5
-Flask-SQLAlchemy==2.5.1
+Flask-SQLAlchemy==3.0.0
 Werkzeug==0.16.1
 six==1.14.0
 firebase_admin==3.2.1
