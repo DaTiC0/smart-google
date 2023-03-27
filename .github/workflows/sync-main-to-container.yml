@@ -13,10 +13,15 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
       - name: Checkout container branch
-        run: git checkout container
+        run: |
+          git fetch --unshallow
+          git checkout container
+      - name: pull container branch
+        run: |
+          git pull
       - name: Merge main branch into container
         run: |
-          git merge main --no-edit
+          git merge main --no-edit -m "Auto-merge main to container"
           git push
       - name: Cleanup
         run: |
