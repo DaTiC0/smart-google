@@ -16,12 +16,11 @@ jobs:
         run: |
           git fetch --unshallow
           git checkout container
-      - name: pull container branch
-        run: |
-          git pull
       - name: Merge main branch into container
         run: |
           git merge main --no-edit -m "Auto-merge main to container"
+      - name: Push to container
+        run: |
           git push
       - name: Cleanup
         run: |
