@@ -40,4 +40,4 @@ generate_service_account_file.py file will genearate service account
 
 ### TESTING
 
-Some Testing in VENV just for now. container env is coming .. 
+Some Testing in VENV just for now. container env is coming ..
