@@ -1,0 +1,20 @@
+name: Sync main to container branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync-container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Merge main to container
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git checkout container
+          git merge main --no-edit
+          git push
