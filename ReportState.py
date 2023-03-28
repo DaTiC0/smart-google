@@ -22,7 +22,7 @@ def generate_jwt(service_account):
 def get_access_token(signed_jwt):
     url = 'https://accounts.google.com/o/oauth2/token'
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    data = 'grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=' + signed_jwt
+    data = f'grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion={signed_jwt}'
     response = requests.post(url, headers=headers, data=data)
 
     if response.status_code == requests.codes.ok:
@@ -35,13 +35,10 @@ def get_access_token(signed_jwt):
 
 def report_state(access_token, report_state_file):
     url = 'https://homegraph.googleapis.com/v1/devices:reportStateAndNotification'
-    headers = {
-        'X-GFE-SSL': 'yes',
-        'Authorization': 'Bearer ' + access_token
-    }
+    headers = {'X-GFE-SSL': 'yes', 'Authorization': f'Bearer {access_token}'}
     data = report_state_file
     response = requests.post(url, headers=headers, json=data)
-    print('Response: ' + response.text)
+    print(f'Response: {response.text}')
 
     return response.status_code == requests.codes.ok
 
@@ -51,9 +48,7 @@ def main(report_state_file):
     print('By ReportState')
     signed_jwt = generate_jwt(service_account).decode("utf-8")  # Decode
     access_token = get_access_token(signed_jwt)
-    success = report_state(access_token, report_state_file)
-
-    if success:
+    if success := report_state(access_token, report_state_file):
         print('Report State has been done successfully.')
     else:
         print('Report State failed. Please check the log above.')

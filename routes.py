@@ -36,7 +36,7 @@ def access_token():
 def authorize(*args, **kwargs):
     print("this is authorize")
     user = get_current_user()
-    print("Authorize User: %s" % user)
+    print(f"Authorize User: {user}")
     if not user:
         return redirect('/')
     if request.method == 'GET':

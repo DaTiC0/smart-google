@@ -31,9 +31,7 @@ class Client(db.Model):
 
     @property
     def redirect_uris(self):
-        if self._redirect_uris:
-            return self._redirect_uris.split()
-        return []
+        return self._redirect_uris.split() if self._redirect_uris else []
 
     @property
     def default_redirect_uri(self):
@@ -41,9 +39,7 @@ class Client(db.Model):
 
     @property
     def default_scopes(self):
-        if self._default_scopes:
-            return self._default_scopes.split()
-        return []
+        return self._default_scopes.split() if self._default_scopes else []
 
 
 class Grant(db.Model):
@@ -70,9 +66,7 @@ class Grant(db.Model):
 
     @property
     def scopes(self):
-        if self._scopes:
-            return self._scopes.split()
-        return []
+        return self._scopes.split() if self._scopes else []
 
 
 class Token(db.Model):
@@ -96,6 +90,4 @@ class Token(db.Model):
 
     @property
     def scopes(self):
-        if self._scopes:
-            return self._scopes.split()
-        return []
+        return self._scopes.split() if self._scopes else []
