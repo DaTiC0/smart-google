@@ -42,9 +42,7 @@ def signup_post():
     email = request.form.get('email')
     name = request.form.get('name')
     password = request.form.get('password')
-    # get user from database
-    user = User.query.filter_by(email=email).first()
-    if user:
+    if user := User.query.filter_by(email=email).first():
         flash('This Mail is used by another Person')
         return redirect(url_for('auth.signup'))
     # If not User found Create new

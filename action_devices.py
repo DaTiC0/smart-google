@@ -42,7 +42,7 @@ def rsync():
         DEVICE = {
             "id": k,
         }
-        DEVICE.update(v)
+        DEVICE |= v
 
         DEVICES.append(DEVICE)
     return DEVICES
@@ -74,7 +74,7 @@ def onQuery(body):
     for i in body['inputs']:
         for device in i['payload']['devices']:
             deviceId = device['id']
-            print('DEVICE ID: ' + deviceId)
+            print(f'DEVICE ID: {deviceId}')
             data = rquery(deviceId)
             payload['devices'][deviceId] = data
     return payload
@@ -141,8 +141,7 @@ def actions(req):
             # SEND TEST MQTT
             deviceId = payload['commands'][0]['ids'][0]
             params = payload['commands'][0]['states']
-            mqtt.publish(topic=str(deviceId) + '/' + 'notification',
-                         payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+            mqtt.publish(topic=f'{str(deviceId)}/notification', payload=str(params), qos=0)
         elif i['intent'] == "action.devices.DISCONNECT":
             print("\nDISCONNECT ACTION")
         else:
@@ -152,7 +151,7 @@ def actions(req):
 
 def request_sync(api_key, agent_user_id):
     """This function does blah blah."""
-    url = 'https://homegraph.googleapis.com/v1/devices:requestSync?key=' + api_key
+    url = f'https://homegraph.googleapis.com/v1/devices:requestSync?key={api_key}'
     data = {"agentUserId": agent_user_id, "async": True}
 
     response = requests.post(url, json=data)
