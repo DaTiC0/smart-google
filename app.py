@@ -42,7 +42,7 @@ FIREBASE_DATABASEURL = app.config['DATABASEURL']
 FIREBASE_OPTIONS = {'databaseURL': FIREBASE_DATABASEURL}
 initialize_app(FIREBASE_CREDENTIALS, FIREBASE_OPTIONS)
 
-ALLOWED_EXTENSIONS = set(['txt', 'py'])  # for some files to save
+ALLOWED_EXTENSIONS = {'txt', 'py'}
 
 
 @login_manager.user_loader
