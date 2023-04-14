@@ -11,16 +11,14 @@ from my_oauth import oauth
 from notifications import mqtt
 from routes import bp
 
-# Flask Application
+# Flask Application Configuration
 app = Flask(__name__, template_folder='templates')
-# app.config.from_object('config.DevelopmentConfig')
 if app.config["ENV"] == "production":
     app.config.from_object("config.ProductionConfig")
 else:
     app.config.from_object("config.DevelopmentConfig")
 print(f'ENV is set to: {app.config["ENV"]}')
 print(f'Agent USER.ID: {app.config["AGENT_USER_ID"]}')
-# app.config.from_pyfile('config_old.py')
 app.register_blueprint(bp, url_prefix='')
 app.register_blueprint(auth, url_prefix='')
 # MQTT CONNECT
@@ -41,7 +39,7 @@ FIREBASE_CREDENTIALS = credentials.Certificate(FIREBASE_ADMINSDK_FILE)
 FIREBASE_DATABASEURL = app.config['DATABASEURL']
 FIREBASE_OPTIONS = {'databaseURL': FIREBASE_DATABASEURL}
 initialize_app(FIREBASE_CREDENTIALS, FIREBASE_OPTIONS)
-
+# File Extensions for Upload Folder
 ALLOWED_EXTENSIONS = {'txt', 'py'}
 
 
