@@ -44,6 +44,8 @@ def authorize(*args, **kwargs):
         client = Client.query.filter_by(client_id=client_id).first()
         print(client_id)
         print(client)
+        if client is None:
+            return redirect('/')
         kwargs['client'] = client
         kwargs['user'] = user
         return render_template('authorize.html', **kwargs)
@@ -55,7 +57,6 @@ def authorize(*args, **kwargs):
 @bp.route('/api/me')
 @oauth.require_oauth()
 def me(req):
-    print("this is me")
     user = req.user
     return jsonify(username=user.username)
 
@@ -66,12 +67,25 @@ def sync_devices():
                  current_app.config['AGENT_USER_ID'])
     report_state()
 
-    return "THIS IS TEST NO RETURN"
+    return "Sync request sent"
 
 
 @bp.route('/IFTTT', methods=['POST'])
 def ifttt():
-    pass
+    # Get the event name from IFTTT
+    event_name = request.json.get('event_name', None)
+    if event_name is None:
+        # If no event name is found, return an error
+        return jsonify({'errors': [{'message': 'No event name specified'}]}), 400
+
+    # Get the data associated with the event
+    data = request.json.get('data', None)
+    if data is None:
+        # If no data is found, return an error
+        return jsonify({'errors': [{'message': 'No data specified'}]}), 400
+
+    # Do something with the event and data
+    return jsonify({'data': [{'id': 1, 'name': 'Test'}]}), 200
 
 
 @bp.route('/devices')
@@ -88,10 +102,9 @@ def smarthome():
     req = request.get_json(silent=True, force=True)
     print("INCOMING REQUEST FROM GOOGLE HOME:")
     print(json.dumps(req, indent=4))
-    payload = actions(req)
     result = {
         'requestId': req['requestId'],
-        'payload': payload,
+        'payload': actions(req),
     }
     print('RESPONSE TO GOOGLE HOME')
     print(json.dumps(result, indent=4))
