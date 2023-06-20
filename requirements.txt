@@ -2,7 +2,7 @@ gunicorn==20.1.0
 Flask==1.1.2
 Flask-MQTT==1.1.1
 Flask-OAuthlib==0.9.6
-Flask-SQLAlchemy==2.5.1
+Flask-SQLAlchemy==3.0.4
 SQLAlchemy==1.4.47
 Werkzeug==0.16.1
 six==1.14.0
