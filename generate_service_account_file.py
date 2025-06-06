@@ -27,6 +27,10 @@ def generate_file():
         data['private_key'] = data['private_key'].replace('\\n', '\n')
     except AttributeError as e:
         print('Error: %s' % e)
+    except KeyError as e:
+        print('Error: %s' % e)
+    except Exception as e:
+        print('Error: %s' % e)
     print('Dictionary Generated')
 
     return data
