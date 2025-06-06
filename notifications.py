@@ -13,7 +13,7 @@ mqtt = Mqtt()
 def handle_messages(client, userdata, message):
     print('Received message on topic {}: {}'
           .format(message.topic, message.payload.decode()))
-    if message == 'hi':
+    if message.payload.decode() == 'hi':
         print('== THIS IS NOT JOKE NO HI HERE ==')
 
 
