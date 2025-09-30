@@ -1,0 +1,14 @@
+# Working requirements for smart-google - compatible versions
+python-dotenv==0.15.0
+requests==2.25.1
+six==1.14.0
+PyMySQL==1.0.2
+
+# For Firebase (optional, we have mock implementation)
+# firebase_admin==3.2.1
+
+# For MQTT (simplified version)
+paho-mqtt==1.5.1
+
+# Basic web server alternative to Flask
+# Use simple_server.py for testing or install Flask manually
