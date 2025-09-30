@@ -2,6 +2,9 @@
 # Code By DaTi_Co
 import os
 
+# Apply Flask/Jinja2 compatibility patch
+import flask_patch
+
 from flask import Flask, send_from_directory
 from flask_login import LoginManager
 from firebase_admin import credentials, initialize_app
