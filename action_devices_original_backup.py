@@ -155,7 +155,7 @@ def request_sync(api_key, agent_user_id):
     url = 'https://homegraph.googleapis.com/v1/devices:requestSync?key=' + api_key
     data = {"agentUserId": agent_user_id, "async": True}
 
-    response = requests.post(url, json=data)
+    response = requests.post(url, json=data, timeout=30)
 
     print('\nRequests Code: %s' %
           requests.codes['ok'] + '\nResponse Code: %s' % response.status_code)
