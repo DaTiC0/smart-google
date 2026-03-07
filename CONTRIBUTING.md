@@ -55,3 +55,16 @@ Configure GitHub branch protection for `main`:
 - Require at least 1 approving review.
 - Dismiss stale approvals when new commits are pushed.
 - Restrict direct pushes to `main`.
+
+## If You Commit to main by Mistake
+
+If the commit is local and not yet pushed, move it safely to a feature branch:
+
+```bash
+git checkout -b feat/workflow-hardening
+git checkout main
+git fetch origin
+git reset --hard origin/main
+```
+
+This keeps your work on the feature branch and restores local `main` to match remote.
