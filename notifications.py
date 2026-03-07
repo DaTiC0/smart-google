@@ -2,6 +2,11 @@ from flask_mqtt import Mqtt
 
 mqtt = Mqtt()
 
+
+def is_mqtt_connected():
+    """Return True if the MQTT client is currently connected."""
+    return bool(getattr(mqtt, 'connected', False))
+
 ##################################################
 ##################################################
 # @mqtt.on_log()
