@@ -24,10 +24,10 @@ class ApplicationRoutesTest(unittest.TestCase):
         self.assertIsInstance(payload, dict)
         self.assertEqual(payload.get('service'), 'smart-google')
         self.assertIsInstance(payload.get('mqtt_connected'), bool)
-        self.assertIn(payload.get('status'), ('ok', 'degraded', 'healthy'))
+        self.assertIn(payload.get('status'), ('ok', 'degraded'))
 
         if response.status_code == 200:
-            self.assertIn(payload.get('status'), ('ok', 'healthy'))
+            self.assertEqual(payload.get('status'), 'ok')
         else:
             self.assertEqual(payload.get('status'), 'degraded')
 
@@ -38,3 +38,19 @@ class AllowedFileTest(unittest.TestCase):
         self.assertTrue(allowed_file('notes.txt'))
         self.assertFalse(allowed_file('image.png'))
         self.assertFalse(allowed_file('no_extension'))
+
+    def test_allowed_file_multiple_dots(self):
+        # Should be allowed or disallowed based on the final extension
+        self.assertTrue(allowed_file('archive.tar.py'))
+        self.assertFalse(allowed_file('archive.tar.gz'))
+
+    def test_allowed_file_uppercase_extension(self):
+        # Uppercase extensions corresponding to allowed types should be accepted
+        self.assertTrue(allowed_file('SCRIPT.PY'))
+        self.assertTrue(allowed_file('NOTES.TXT'))
+        self.assertFalse(allowed_file('IMAGE.PNG'))
+
+    def test_allowed_file_empty_and_edge_names(self):
+        self.assertFalse(allowed_file(''))
+        self.assertFalse(allowed_file('.'))
+        self.assertFalse(allowed_file('.hidden'))
