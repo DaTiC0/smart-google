@@ -17,9 +17,6 @@ test:
 		exit $$code; \
 	else \
 		$(PYTHON) -m unittest discover -s tests -v; \
-		code=$$?; \
-		if [ $$code -eq 5 ]; then echo "No tests discovered"; exit 0; fi; \
-		exit $$code; \
 	fi
 
 health:
