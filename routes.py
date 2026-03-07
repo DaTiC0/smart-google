@@ -8,6 +8,7 @@ from flask_login import login_required, current_user
 from action_devices import onSync, report_state, request_sync, actions
 from models import Client
 from my_oauth import get_current_user, oauth
+from notifications import is_mqtt_connected
 
 
 bp = Blueprint(__name__, 'home')
@@ -16,6 +17,17 @@ bp = Blueprint(__name__, 'home')
 @bp.route('/')
 def index():
     return render_template('index.html')
+
+
+@bp.route('/health')
+def health():
+    mqtt_connected = is_mqtt_connected()
+    status_code = 200 if mqtt_connected else 503
+    return jsonify({
+        'status': 'ok' if mqtt_connected else 'degraded',
+        'service': 'smart-google',
+        'mqtt_connected': mqtt_connected,
+    }), status_code
 
 
 @bp.route('/profile')
