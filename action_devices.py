@@ -298,7 +298,8 @@ def request_sync(api_key, agent_user_id):
         response = requests.post(url, json=data)
 
         print(f'\nRequests Code: {requests.codes["ok"]}\nResponse Code: {response.status_code}')
-        print(f'\nResponse: {response.text}')
+        # Do not log full response body to avoid leaking sensitive information.
+        print('\nResponse body omitted from logs for security reasons')
 
         return response.status_code == requests.codes['ok']
     except Exception as e:
