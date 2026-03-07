@@ -127,3 +127,16 @@ make check-paths
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full details and AI-assisted code review policy.
+
+### If You Commit to main by Mistake
+
+If the commit is local and not pushed yet, move it safely to a feature branch:
+
+```bash
+git checkout -b feat/workflow-hardening
+git checkout main
+git fetch origin
+git reset --hard origin/main
+```
+
+This keeps your work on the feature branch and restores local `main` to match remote.
