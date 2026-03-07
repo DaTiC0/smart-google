@@ -44,11 +44,13 @@ def access_token():
 
 
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])
+# Both GET (render consent page) and POST (handle form submission) are required
+# by the OAuth2 Authorization Code flow and the @oauth.authorize_handler decorator.
 @oauth.authorize_handler
 def authorize(*args, **kwargs):
     print("this is authorize")
     user = get_current_user()
-    print("Authorize User: %s" % user)
+    print(f"Authorize User: {user}")
     if not user:
         return redirect('/')
     if request.method == 'GET':
