@@ -35,46 +35,42 @@ pip install -r requirements.txt
 
 Then, you need to export some environment variables that will be used by the application. You can either set them manually or use a .env file. The variables are:
 
-- SECRET_KEY
-- SQLALCHEMY_DATABASE_URI
-- MQTT_BROKER_URL
-- MQTT_USERNAME
-- MQTT_PASSWORD
-- API_KEY
-- AGENT_USER_ID
-- SERVICE_ACCOUNT_FILE
-- FIREBASE_ADMINSDK_FILE
-- DATABASEURL
-- PROJECT_ID
-- PRIVATE_KEY_ID
-- PRIVATE_KEY
-- CLIENT_EMAIL
-- CLIENT_X509_CERT_URL
+- `SECRET_KEY`
+- `SQLALCHEMY_DATABASE_URI`
+- `MQTT_BROKER_URL`
+- `MQTT_USERNAME`
+- `MQTT_PASSWORD`
+- `API_KEY`
+- `AGENT_USER_ID`
+- `SERVICE_ACCOUNT_FILE`
+- `FIREBASE_ADMINSDK_FILE`
+- `DATABASEURL`
 
 ### Google Service Account
 
-To use Google actions and Firebase, you need to create a service account and download a JSON file `service_account_file.json` that contains some credentials.
+To use Google actions and Firebase, you need to create a service account and download the JSON credentials file. Run the helper script to generate `service_account_file.json`:
 
-extract from this file
-'PROJECT_ID'
-'PRIVATE_KEY_ID'
-'PRIVATE_KEY'
-'CLIENT_EMAIL'
-'CLIENT_X509_CERT_URL'
-and export to environment or save in .env file for security
-generate_service_account_file.py file will genearate service account
+```bash
+python generate_service_account_file.py
+```
 
-### TESTING
+The following variables are extracted automatically from that file and must also be present in your environment or `.env`:
 
-To test the application locally, you can use ngrok to expose your Flask server to the internet, or you can use the cloudfare tunneling service.
+- `PROJECT_ID`
+- `PRIVATE_KEY_ID`
+- `PRIVATE_KEY`
+- `CLIENT_EMAIL`
+- `CLIENT_X509_CERT_URL`
 
-To use ngrok, you need to download the ngrok executable and run it:
+### Testing Locally
+
+To expose your Flask server to the internet during local testing, use either **ngrok**:
 
 ```bash
 ./ngrok http 5000
 ```
 
-To use the cloudfare tunneling service, you need to install the cloudfare tunneling client and run it:
+or **Cloudflare Tunnel**:
 
 ```bash
 cloudflared tunnel --url http://localhost:5000
@@ -82,15 +78,11 @@ cloudflared tunnel --url http://localhost:5000
 
 ### Health Check
 
-The app provides a simple runtime health endpoint:
+The app exposes a `/health` endpoint:
 
 ```bash
 curl -i http://127.0.0.1:5000/health
-```
-
-One-command local check:
-
-```bash
+# or
 make health
 ```
 
@@ -100,10 +92,7 @@ Example response:
 {"mqtt_connected":true,"service":"smart-google","status":"ok"}
 ```
 
-Status codes:
-
-- `200` when MQTT is connected (`status: ok`)
-- `503` when MQTT is not connected (`status: degraded`)
+Returns `200` when MQTT is connected (`status: ok`) and `503` when it is not (`status: degraded`).
 
 ### Collaboration Workflow
 
@@ -127,16 +116,3 @@ make check-paths
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full details and AI-assisted code review policy.
-
-### If You Commit to main by Mistake
-
-If the commit is local and not pushed yet, move it safely to a feature branch:
-
-```bash
-git checkout -b feat/workflow-hardening
-git checkout main
-git fetch origin
-git reset --hard origin/main
-```
-
-This keeps your work on the feature branch and restores local `main` to match remote.
