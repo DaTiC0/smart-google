@@ -163,7 +163,8 @@ if not FULL_FEATURES:
                 state_result = report_state()
                 return {'sync_requested': True, 'success': success, 'state_report': state_result}
             except Exception as e:
-                return {'error': str(e)}, 500
+                app.logger.exception("Error during /sync endpoint processing")
+                return {'error': 'Internal server error'}, 500
 
     except ImportError as e:
         print(f"Could not import action_devices: {e}")
