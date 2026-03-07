@@ -1,0 +1,17 @@
+name: Path safety
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  check-absolute-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan for local absolute paths
+        run: bash scripts/check_absolute_paths.sh

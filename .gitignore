@@ -1,8 +1,16 @@
 # MY STUFF?
 .dccache
 .vscode/
-db.sqlite
-data.sqlite
+
+# Local database/runtime artifacts
+*.sqlite
+*.sqlite3
+*.db
+
+# Service account and local credential files
+firebase-adminsdk.json
+*.pem
+*.key
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -108,6 +116,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
 .venv
 env/
 venv/
