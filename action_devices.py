@@ -5,7 +5,14 @@ import json
 import requests
 from flask import current_app
 from notifications import mqtt
-import ReportState as state
+
+try:
+    import ReportState as state
+    REPORTSTATE_AVAILABLE = True
+except ImportError:
+    state = None
+    REPORTSTATE_AVAILABLE = False
+    print("ReportState module not available, some features may be disabled.")
 
 # Try to import firebase_admin, but provide fallback if not available
 try:
@@ -26,7 +33,7 @@ MOCK_DEVICES = {
         "states": {"on": True, "brightness": 80, "online": True}
     },
     "test-switch-1": {
-        "type": "action.devices.types.SWITCH", 
+        "type": "action.devices.types.SWITCH",
         "traits": ["action.devices.traits.OnOff"],
         "name": {"name": "Test Switch"},
         "willReportState": True,
@@ -35,28 +42,24 @@ MOCK_DEVICES = {
 }
 
 
-# firebase initialisation problem was fixed?
-def reference():
-    if FIREBASE_AVAILABLE:
-        return db.reference('/devices')
-    else:
-        # Return mock reference for testing
-        class MockRef:
-            def get(self):
-                return MOCK_DEVICES
-            def child(self, path):
-                return MockChild(MOCK_DEVICES, path)
-        return MockRef()
+class MockRef:
+    @staticmethod
+    def get():
+        return MOCK_DEVICES
+
+    @staticmethod
+    def child(path):
+        return MockChild(MOCK_DEVICES, path)
 
 
 class MockChild:
     def __init__(self, data, path):
         self.data = data
         self.path = path
-    
+
     def child(self, child_path):
         return MockChild(self.data, self.path + '/' + child_path)
-    
+
     def get(self):
         keys = self.path.split('/')
         current = self.data
@@ -66,7 +69,7 @@ class MockChild:
             else:
                 return None
         return current
-    
+
     def update(self, values):
         keys = self.path.split('/')
         current = self.data
@@ -80,13 +83,24 @@ class MockChild:
         return current[keys[-1]]
 
 
+# firebase initialisation problem was fixed?
+def reference():
+    if FIREBASE_AVAILABLE:
+        try:
+            return db.reference('/devices')
+        except Exception as e:
+            # Firebase is installed but not initialized (e.g. missing credentials in dev)
+            print(f"Firebase not initialized, falling back to mock data: {e}")
+    return MockRef()
+
+
 def rstate():
     try:
         ref = reference()
         devices_data = ref.get()
         if not devices_data:
             return {"devices": {"states": {}}}
-        
+
         devices = list(devices_data.keys())
         payload = {
             "devices": {
@@ -113,7 +127,7 @@ def rsync():
         snapshot = ref.get()
         if not snapshot:
             return []
-        
+
         DEVICES = []
         for k, v in snapshot.items():
             v_copy = v.copy()
@@ -210,7 +224,12 @@ def commands(payload, deviceId, execCommand, params):
     dont remember how state ad parameters is used """
     try:
         if execCommand == 'action.devices.commands.OnOff':
-            params = {'on': params.get('on', True)}
+            if 'on' not in params:
+                print("Error: 'on' parameter missing for OnOff command")
+                payload['commands'][0]['status'] = 'ERROR'
+                payload['commands'][0]['errorCode'] = 'missingOnParameter'
+                return payload
+            params = {'on': params['on']}
             print('OnOff')
         elif execCommand == 'action.devices.commands.BrightnessAbsolute':
             params = {'brightness': params.get('brightness', 100), 'on': True}
@@ -226,7 +245,7 @@ def commands(payload, deviceId, execCommand, params):
         elif execCommand == 'action.devices.commands.LockUnlock':
             params = {'isLocked': params['lock']}
             print('LockUnlock')
-        
+
         # Out from elif
         states = rexecute(deviceId, params)
         payload['commands'][0]['states'] = states
@@ -278,9 +297,8 @@ def request_sync(api_key, agent_user_id):
 
         response = requests.post(url, json=data)
 
-        print('\nRequests Code: %s' %
-              requests.codes['ok'] + '\nResponse Code: %s' % response.status_code)
-        print('\nResponse: ' + response.text)
+        print(f'\nRequests Code: {requests.codes["ok"]}\nResponse Code: {response.status_code}')
+        print(f'\nResponse: {response.text}')
 
         return response.status_code == requests.codes['ok']
     except Exception as e:
@@ -290,6 +308,9 @@ def request_sync(api_key, agent_user_id):
 
 def report_state():
     try:
+        if not REPORTSTATE_AVAILABLE:
+            print("ReportState module not available, skipping report_state")
+            return "ReportState not available"
         import random
         n = random.randint(10**19, 10**20)
         report_state_file = {
@@ -304,3 +325,4 @@ def report_state():
     except Exception as e:
         print(f"Error in report_state: {e}")
         return f"Error: {e}"
+
