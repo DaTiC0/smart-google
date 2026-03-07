@@ -34,9 +34,6 @@ except ImportError as e:
 
 # Flask Application Configuration
 app = Flask(__name__, template_folder='templates')
-app.config['AGENT_USER_ID'] = os.environ.get('AGENT_USER_ID', 'test-user')
-app.config['API_KEY'] = os.environ.get('API_KEY', 'test-api-key')
-app.config['DATABASEURL'] = os.environ.get('DATABASEURL', 'https://test-project-default-rtdb.firebaseio.com/')
 app.config['UPLOAD_FOLDER'] = './static/upload'
 
 if app.config.get("ENV") == "production":
@@ -49,6 +46,16 @@ else:
         app.config.from_object("config.DevelopmentConfig")
     except Exception as e:
         print(f"Could not load DevelopmentConfig: {e}")
+
+# Apply fallback defaults AFTER from_object so config values are not overwritten.
+# Config classes set these from environment variables; if the env var is unset,
+# from_object produces None — these defaults keep the app startable in dev/test.
+if not app.config.get('AGENT_USER_ID'):
+    app.config['AGENT_USER_ID'] = 'test-user'
+if not app.config.get('API_KEY'):
+    app.config['API_KEY'] = 'test-api-key'
+if not app.config.get('DATABASEURL'):
+    app.config['DATABASEURL'] = 'https://test-project-default-rtdb.firebaseio.com/'
 
 # Ensure SECRET_KEY is set; generate a random one if missing (not suitable for production)
 if not app.config.get('SECRET_KEY'):
@@ -184,4 +191,3 @@ if __name__ == '__main__':
 
     host = os.environ.get('FLASK_RUN_HOST', '127.0.0.1')
     app.run(host=host, port=5000, debug=False)
-
