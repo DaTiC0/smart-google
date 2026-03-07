@@ -8,6 +8,21 @@ import ssl
 from dotenv import load_dotenv
 from generate_service_account_file import generate_file
 
+
+def _get_int_env(name, default):
+    """
+    Safely parse an integer environment variable.
+
+    Returns the provided default if the variable is unset, empty, or invalid.
+    """
+    raw_value = environ.get(name)
+    if raw_value is None or raw_value == "":
+        return default
+    try:
+        return int(raw_value)
+    except (TypeError, ValueError):
+        return default
+
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
 
@@ -23,7 +38,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = environ.get('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MQTT_BROKER_URL = environ.get('MQTT_BROKER_URL')
-    MQTT_BROKER_PORT = int(environ.get('MQTT_BROKER_PORT', 11868))
+    MQTT_BROKER_PORT = _get_int_env('MQTT_BROKER_PORT', 11868)
     MQTT_USERNAME = environ.get('MQTT_USERNAME')
     MQTT_PASSWORD = environ.get('MQTT_PASSWORD')
     MQTT_KEEPALIVE = 90
