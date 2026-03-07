@@ -79,3 +79,51 @@ To use the cloudfare tunneling service, you need to install the cloudfare tunnel
 ```bash
 cloudflared tunnel --url http://localhost:5000
 ```
+
+### Health Check
+
+The app provides a simple runtime health endpoint:
+
+```bash
+curl -i http://127.0.0.1:5000/health
+```
+
+One-command local check:
+
+```bash
+make health
+```
+
+Example response:
+
+```json
+{"mqtt_connected":true,"service":"smart-google","status":"ok"}
+```
+
+Status codes:
+
+- `200` when MQTT is connected (`status: ok`)
+- `503` when MQTT is not connected (`status: degraded`)
+
+### Collaboration Workflow
+
+Recommended workflow is branch + pull request + merge to `main`.
+
+Quick steps:
+
+```bash
+git checkout main
+git pull --rebase origin main
+git checkout -b feat/my-change
+make install-hooks
+```
+
+Before opening a PR:
+
+```bash
+make test
+make health
+make check-paths
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full details and AI-assisted code review policy.

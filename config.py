@@ -4,6 +4,7 @@
 # App Configuration File
 from os import environ, path
 import secrets
+import ssl
 from dotenv import load_dotenv
 from generate_service_account_file import generate_file
 
@@ -22,11 +23,12 @@ class Config:
     SQLALCHEMY_DATABASE_URI = environ.get('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MQTT_BROKER_URL = environ.get('MQTT_BROKER_URL')
-    MQTT_BROKER_PORT = 11868
+    MQTT_BROKER_PORT = int(environ.get('MQTT_BROKER_PORT', 11868))
     MQTT_USERNAME = environ.get('MQTT_USERNAME')
     MQTT_PASSWORD = environ.get('MQTT_PASSWORD')
     MQTT_KEEPALIVE = 90
-    MQTT_TLS_ENABLED = False  # set TLS to disabled for testing purposes
+    MQTT_TLS_ENABLED = environ.get('MQTT_TLS_ENABLED', 'False').lower() in ('1', 'true', 'yes', 'on')
+    MQTT_TLS_VERSION = ssl.PROTOCOL_TLSv1_2
     API_KEY = environ.get('API_KEY')
     AGENT_USER_ID = environ.get('AGENT_USER_ID')
     DATABASEURL = environ.get('DATABASEURL')  # your Project database URL
