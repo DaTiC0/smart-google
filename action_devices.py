@@ -227,7 +227,7 @@ def commands(payload, deviceId, execCommand, params):
             if 'on' not in params:
                 print("Error: 'on' parameter missing for OnOff command")
                 payload['commands'][0]['status'] = 'ERROR'
-                payload['commands'][0]['errorCode'] = 'missingOnParameter'
+                payload['commands'][0]['errorCode'] = 'hardError'
                 return payload
             params = {'on': params['on']}
             print('OnOff')

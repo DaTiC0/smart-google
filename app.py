@@ -56,7 +56,7 @@ if not app.config.get('SECRET_KEY'):
     print("WARNING: SECRET_KEY not set in environment. Using a generated key (not suitable for production).")
 
 print(f'ENV is set to: {app.config.get("ENV", "development")}')
-print(f'Agent USER.ID: {app.config.get("AGENT_USER_ID")}')
+print(f'AGENT_USER_ID: {app.config.get("AGENT_USER_ID")}')
 
 # Register blueprints if available — initialize extensions first, then blueprints.
 # This order ensures that a failure in extension setup does not leave blueprints
