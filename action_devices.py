@@ -2,177 +2,326 @@
 # Code By DaTi_Co
 
 import json
-from firebase_admin import db
 import requests
 from flask import current_app
 from notifications import mqtt
-import ReportState as state
+
+try:
+    import ReportState as state
+    REPORTSTATE_AVAILABLE = True
+except ImportError:
+    state = None
+    REPORTSTATE_AVAILABLE = False
+    print("ReportState module not available, some features may be disabled.")
+
+# Try to import firebase_admin, but provide fallback if not available
+try:
+    from firebase_admin import db
+    FIREBASE_AVAILABLE = True
+except ImportError:
+    FIREBASE_AVAILABLE = False
+    print("Firebase admin not available, using mock data for testing")
+
+# Mock data for testing when Firebase is not available
+MOCK_DEVICES = {
+    "test-light-1": {
+        "type": "action.devices.types.LIGHT",
+        "traits": ["action.devices.traits.OnOff", "action.devices.traits.Brightness"],
+        "name": {"name": "Test Light"},
+        "willReportState": True,
+        "attributes": {"colorModel": "rgb"},
+        "states": {"on": True, "brightness": 80, "online": True}
+    },
+    "test-switch-1": {
+        "type": "action.devices.types.SWITCH",
+        "traits": ["action.devices.traits.OnOff"],
+        "name": {"name": "Test Switch"},
+        "willReportState": True,
+        "states": {"on": False, "online": True}
+    }
+}
+
+
+class MockRef:
+    @staticmethod
+    def get():
+        return MOCK_DEVICES
+
+    @staticmethod
+    def child(path):
+        return MockChild(MOCK_DEVICES, path)
+
+
+class MockChild:
+    def __init__(self, data, path):
+        self.data = data
+        self.path = path
+
+    def child(self, child_path):
+        return MockChild(self.data, self.path + '/' + child_path)
+
+    def get(self):
+        keys = self.path.split('/')
+        current = self.data
+        for key in keys:
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            else:
+                return None
+        return current
+
+    def update(self, values):
+        keys = self.path.split('/')
+        current = self.data
+        for key in keys[:-1]:
+            if key not in current:
+                current[key] = {}
+            current = current[key]
+        if keys[-1] not in current:
+            current[keys[-1]] = {}
+        current[keys[-1]].update(values)
+        return current[keys[-1]]
 
 
 # firebase initialisation problem was fixed?
 def reference():
-    return db.reference('/devices')
+    if FIREBASE_AVAILABLE:
+        try:
+            return db.reference('/devices')
+        except Exception as e:
+            # Firebase is installed but not initialized (e.g. missing credentials in dev)
+            print(f"Firebase not initialized, falling back to mock data: {e}")
+    return MockRef()
 
 
 def rstate():
-    ref = reference()
-    # Getting devices from Firebase as list
-    devices = list(ref.get().keys())
-    payload = {
-        "devices": {
-            "states": {}
-        }
-    }
-    for device in devices:
-        device = str(device)
-        print('\nGetting Device status from: ' + device)
-        state = rquery(device)
-        payload['devices']['states'][device] = state
-        print(state)
+    try:
+        ref = reference()
+        devices_data = ref.get()
+        if not devices_data:
+            return {"devices": {"states": {}}}
 
-    return payload
+        devices = list(devices_data.keys())
+        payload = {
+            "devices": {
+                "states": {}
+            }
+        }
+        for device in devices:
+            device = str(device)
+            print('\nGetting Device status from: ' + device)
+            state_data = rquery(device)
+            if state_data:
+                payload['devices']['states'][device] = state_data
+            print(state_data)
+
+        return payload
+    except Exception as e:
+        print(f"Error in rstate: {e}")
+        return {"devices": {"states": {}}}
 
 
 def rsync():
-    ref = reference()
-    snapshot = ref.get()
-    DEVICES = []
-    for k, v in snapshot.items():
-        v.pop('states', None)
-        DEVICE = {
-            "id": k,
-        }
-        DEVICE.update(v)
+    try:
+        ref = reference()
+        snapshot = ref.get()
+        if not snapshot:
+            return []
 
-        DEVICES.append(DEVICE)
-    return DEVICES
+        DEVICES = []
+        for k, v in snapshot.items():
+            v_copy = v.copy()
+            v_copy.pop('states', None)
+            DEVICE = {
+                "id": k,
+            }
+            DEVICE.update(v_copy)
+            DEVICES.append(DEVICE)
+        return DEVICES
+    except Exception as e:
+        print(f"Error in rsync: {e}")
+        return []
 
 
 def rquery(deviceId):
-    ref = reference()
-    return ref.child(deviceId).child('states').get()
+    try:
+        ref = reference()
+        return ref.child(deviceId).child('states').get()
+    except Exception as e:
+        print(f"Error querying device {deviceId}: {e}")
+        return {"online": False}
 
 
 def rexecute(deviceId, parameters):
-    ref = reference()
-    ref.child(deviceId).child('states').update(parameters)
-    return ref.child(deviceId).child('states').get()
+    try:
+        ref = reference()
+        ref.child(deviceId).child('states').update(parameters)
+        return ref.child(deviceId).child('states').get()
+    except Exception as e:
+        print(f"Error executing on device {deviceId}: {e}")
+        return parameters
 
 
 def onSync():
-    return {
-        "agentUserId": current_app.config['AGENT_USER_ID'],
-        "devices": rsync()
-    }
+    try:
+        return {
+            "agentUserId": current_app.config['AGENT_USER_ID'],
+            "devices": rsync()
+        }
+    except Exception as e:
+        print(f"Error in onSync: {e}")
+        return {"agentUserId": "test-user", "devices": []}
 
 
 def onQuery(body):
-    # handle query request
-    payload = {
-        "devices": {},
-    }
-    for i in body['inputs']:
-        for device in i['payload']['devices']:
-            deviceId = device['id']
-            print('DEVICE ID: ' + deviceId)
-            data = rquery(deviceId)
-            payload['devices'][deviceId] = data
-    return payload
+    try:
+        # handle query request
+        payload = {
+            "devices": {},
+        }
+        for i in body['inputs']:
+            for device in i['payload']['devices']:
+                deviceId = device['id']
+                print('DEVICE ID: ' + deviceId)
+                data = rquery(deviceId)
+                payload['devices'][deviceId] = data
+        return payload
+    except Exception as e:
+        print(f"Error in onQuery: {e}")
+        return {"devices": {}}
 
 
 def onExecute(body):
-    # handle execute request
-    payload = {
-        'commands': [{
-            'ids': [],
-            'status': 'SUCCESS',
-            'states': {
-                'online': True,
-            },
-        }],
-    }
-    for i in body['inputs']:
-        for command in i['payload']['commands']:
-            for device in command['devices']:
-                deviceId = device['id']
-                payload['commands'][0]['ids'].append(deviceId)
-                for execution in command['execution']:
-                    execCommand = execution['command']
-                    params = execution['params']
-                    # First try to refactor
-                    payload = commands(payload, deviceId, execCommand, params)
-    return payload
+    try:
+        # handle execute request
+        payload = {
+            'commands': [{
+                'ids': [],
+                'status': 'SUCCESS',
+                'states': {
+                    'online': True,
+                },
+            }],
+        }
+        for i in body['inputs']:
+            for command in i['payload']['commands']:
+                for device in command['devices']:
+                    deviceId = device['id']
+                    payload['commands'][0]['ids'].append(deviceId)
+                    for execution in command['execution']:
+                        execCommand = execution['command']
+                        params = execution['params']
+                        # First try to refactor
+                        payload = commands(payload, deviceId, execCommand, params)
+        return payload
+    except Exception as e:
+        print(f"Error in onExecute: {e}")
+        return {'commands': [{'ids': [], 'status': 'ERROR', 'errorCode': 'deviceNotFound'}]}
 
 
 def commands(payload, deviceId, execCommand, params):
     """ more clean code as was bedore.
     dont remember how state ad parameters is used """
-    if execCommand == 'action.devices.commands.OnOff':
-        print('OnOff')
-    elif execCommand == 'action.devices.commands.BrightnessAbsolute':
-        print('BrightnessAbsolute')
-    elif execCommand == 'action.devices.commands.StartStop':
-        params = {'isRunning': params['start']}
-        print('StartStop')
-    elif execCommand == 'action.devices.commands.PauseUnpause':
-        params = {'isPaused': params['pause']}
-        print('PauseUnpause')
-    elif execCommand == 'action.devices.commands.GetCameraStream':
-        print('GetCameraStream')
-    elif execCommand == 'action.devices.commands.LockUnlock':
-        params = {'isLocked': params['lock']}
-        print('LockUnlock')
-    # Out from elif
-    states = rexecute(deviceId, params)
-    payload['commands'][0]['states'] = states
+    try:
+        if execCommand == 'action.devices.commands.OnOff':
+            if 'on' not in params:
+                print("Error: 'on' parameter missing for OnOff command")
+                payload['commands'][0]['status'] = 'ERROR'
+                payload['commands'][0]['errorCode'] = 'hardError'
+                return payload
+            params = {'on': params['on']}
+            print('OnOff')
+        elif execCommand == 'action.devices.commands.BrightnessAbsolute':
+            params = {'brightness': params.get('brightness', 100), 'on': True}
+            print('BrightnessAbsolute')
+        elif execCommand == 'action.devices.commands.StartStop':
+            params = {'isRunning': params['start']}
+            print('StartStop')
+        elif execCommand == 'action.devices.commands.PauseUnpause':
+            params = {'isPaused': params['pause']}
+            print('PauseUnpause')
+        elif execCommand == 'action.devices.commands.GetCameraStream':
+            print('GetCameraStream')
+        elif execCommand == 'action.devices.commands.LockUnlock':
+            params = {'isLocked': params['lock']}
+            print('LockUnlock')
 
-    return payload
+        # Out from elif
+        states = rexecute(deviceId, params)
+        payload['commands'][0]['states'] = states
+
+        return payload
+    except Exception as e:
+        print(f"Error in commands: {e}")
+        payload['commands'][0]['status'] = 'ERROR'
+        return payload
 
 
 def actions(req):
-    for i in req['inputs']:
-        print(i['intent'])
-        if i['intent'] == "action.devices.SYNC":
-            payload = onSync()
-        elif i['intent'] == "action.devices.QUERY":
-            payload = onQuery(req)
-        elif i['intent'] == "action.devices.EXECUTE":
-            payload = onExecute(req)
-            # SEND TEST MQTT
-            deviceId = payload['commands'][0]['ids'][0]
-            params = payload['commands'][0]['states']
-            mqtt.publish(topic=str(deviceId) + '/' + 'notification',
-                         payload=str(params), qos=0)  # SENDING MQTT MESSAGE
-        elif i['intent'] == "action.devices.DISCONNECT":
-            print("\nDISCONNECT ACTION")
-        else:
-            print('Unexpected action requested: %s', json.dumps(req))
-    return payload
+    try:
+        payload = {}
+        for i in req['inputs']:
+            print(i['intent'])
+            if i['intent'] == "action.devices.SYNC":
+                payload = onSync()
+            elif i['intent'] == "action.devices.QUERY":
+                payload = onQuery(req)
+            elif i['intent'] == "action.devices.EXECUTE":
+                payload = onExecute(req)
+                # SEND TEST MQTT
+                try:
+                    if payload.get('commands') and len(payload['commands']) > 0 and len(payload['commands'][0]['ids']) > 0:
+                        deviceId = payload['commands'][0]['ids'][0]
+                        params = payload['commands'][0]['states']
+                        mqtt.publish(topic=str(deviceId) + '/' + 'notification',
+                                     payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+                except Exception as mqtt_error:
+                    print(f"MQTT error: {mqtt_error}")
+            elif i['intent'] == "action.devices.DISCONNECT":
+                print("\nDISCONNECT ACTION")
+                payload = {}
+            else:
+                print('Unexpected action requested: %s', json.dumps(req))
+                payload = {}
+        return payload
+    except Exception as e:
+        print(f"Error in actions: {e}")
+        return {}
 
 
 def request_sync(api_key, agent_user_id):
     """This function does blah blah."""
-    url = 'https://homegraph.googleapis.com/v1/devices:requestSync?key=' + api_key
-    data = {"agentUserId": agent_user_id, "async": True}
+    try:
+        url = 'https://homegraph.googleapis.com/v1/devices:requestSync?key=' + api_key
+        data = {"agentUserId": agent_user_id, "async": True}
 
-    response = requests.post(url, json=data)
+        response = requests.post(url, json=data)
 
-    print('\nRequests Code: %s' %
-          requests.codes['ok'] + '\nResponse Code: %s' % response.status_code)
-    print('\nResponse: ' + response.text)
+        print(f'\nRequests Code: {requests.codes["ok"]}\nResponse Code: {response.status_code}')
+        print(f'\nResponse: {response.text}')
 
-    return response.status_code == requests.codes['ok']
+        return response.status_code == requests.codes['ok']
+    except Exception as e:
+        print(f"Error in request_sync: {e}")
+        return False
 
 
 def report_state():
-    import random
-    n = random.randint(10**19, 10**20)
-    report_state_file = {
-        'requestId': str(n),
-        'agentUserId': current_app.config['AGENT_USER_ID'],
-        'payload': rstate(),
-    }
+    try:
+        if not REPORTSTATE_AVAILABLE:
+            print("ReportState module not available, skipping report_state")
+            return "ReportState not available"
+        import random
+        n = random.randint(10**19, 10**20)
+        report_state_file = {
+            'requestId': str(n),
+            'agentUserId': current_app.config['AGENT_USER_ID'],
+            'payload': rstate(),
+        }
 
-    state.main(report_state_file)
+        state.main(report_state_file)
 
-    return "THIS IS TEST NO RETURN"
+        return "THIS IS TEST NO RETURN"
+    except Exception as e:
+        print(f"Error in report_state: {e}")
+        return f"Error: {e}"

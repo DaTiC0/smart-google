@@ -52,7 +52,6 @@ class Config:
 
 class ProductionConfig(Config):
     DEBUG = False
-    # DATABASEURL = '192.168.1.100'  # change to some your URL
 
 
 class DevelopmentConfig(Config):
