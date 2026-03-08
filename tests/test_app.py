@@ -14,6 +14,9 @@ class ApplicationRoutesTest(unittest.TestCase):
     def setUpClass(cls):
         flask_app.config.update(TESTING=True)
 
+    def setUp(self):
+        self.client = flask_app.test_client()
+
     def test_root_endpoint_content_contract(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
@@ -31,9 +34,6 @@ class ApplicationRoutesTest(unittest.TestCase):
             body = response.get_data(as_text=True)
             self.assertIsInstance(body, str)
             self.assertNotEqual(body.strip(), "")
-
-    def setUp(self):
-        self.client = flask_app.test_client()
 
     def test_health_endpoint_contract(self):
         if not FULL_FEATURES:

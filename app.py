@@ -9,7 +9,7 @@ try:
 except ImportError:
     print("python-dotenv not available, continuing without loading .env file")
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 
 # Try importing Firebase, but don't fail if not available
 try:
@@ -139,7 +139,6 @@ if not FULL_FEATURES:
 
     try:
         from action_devices import onSync, actions, request_sync, report_state
-        from flask import request, jsonify
 
         @app.route('/devices')
         def devices():

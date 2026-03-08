@@ -1,8 +1,6 @@
 # coding: utf-8
 # Code By DaTi_Co
 
-import json
-
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response
 from flask_login import login_required, current_user
 from action_devices import onSync, report_state, request_sync, actions
@@ -11,7 +9,7 @@ from my_oauth import get_current_user, oauth
 from notifications import is_mqtt_connected
 
 
-bp = Blueprint(__name__, 'home')
+bp = Blueprint('routes', __name__)
 
 
 @bp.route('/')
@@ -39,7 +37,6 @@ def profile():
 @bp.route('/oauth/token', methods=['POST'])
 @oauth.token_handler
 def access_token():
-    print('this is token')
     return {'version': '0.1.0'}
 
 
@@ -48,16 +45,12 @@ def access_token():
 # by the OAuth2 Authorization Code flow and the @oauth.authorize_handler decorator.
 @oauth.authorize_handler
 def authorize(*args, **kwargs):
-    print("this is authorize")
     user = get_current_user()
-    print(f"Authorize User: {user}")
     if not user:
         return redirect('/')
     if request.method == 'GET':
         client_id = kwargs.get('client_id')
         client = Client.query.filter_by(client_id=client_id).first()
-        print(client_id)
-        print(client)
         if client is None:
             return redirect('/')
         kwargs['client'] = client
@@ -107,19 +100,14 @@ def ifttt():
 def devices():
     dev_req = onSync()
     device_list = dev_req['devices']
-    print('Are we OK?')
     return render_template('devices.html', title='Smart-Home', devices=device_list)
 
 
 @bp.route('/smarthome', methods=['POST'])
 def smarthome():
     req = request.get_json(silent=True, force=True)
-    print("INCOMING REQUEST FROM GOOGLE HOME:")
-    print(json.dumps(req, indent=4))
     result = {
         'requestId': req['requestId'],
         'payload': actions(req),
     }
-    print('RESPONSE TO GOOGLE HOME')
-    print(json.dumps(result, indent=4))
     return make_response(jsonify(result))
