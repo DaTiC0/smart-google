@@ -1,33 +1,39 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="page-wrap" style="max-width: 480px;">
-    <article class="card">
-        <h1 style="text-align: center;">Sign Up</h1>
+<section class="auth-wrap">
+    <article class="auth-card">
+        <h1 style="text-align: center; margin-bottom: 2.5rem;">Create Account</h1>
+        
         {% with messages = get_flashed_messages() %}
         {% if messages %}
-            <div class="card-alert" role="alert">
-                {{ messages[0] }}. Go to <a href="{{ url_for('auth.login') }}" style="font-weight: 700;">login page</a>.
+            <div class="card-alert" role="alert" style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2);">
+                {{ messages[0] }}. <a href="{{ url_for('auth.login') }}" style="color: #34d399; font-weight: 700; text-decoration: underline;">Login now</a>.
             </div>
         {% endif %}
         {% endwith %}
+
         <form method="POST" action="{{ url_for('auth.signup') }}" class="auth-form">
             <div class="md-field">
-                <label class="md-label" for="signup-email">Email</label>
-                <input id="signup-email" class="md-input" type="email" name="email" placeholder="Your Email" autofocus required>
+                <label class="md-label" for="signup-name">Full Name</label>
+                <input id="signup-name" class="md-input" type="text" name="name" placeholder="John Doe" required>
             </div>
 
             <div class="md-field">
-                <label class="md-label" for="signup-name">Name</label>
-                <input id="signup-name" class="md-input" type="text" name="name" placeholder="Your Name" required>
+                <label class="md-label" for="signup-email">Email Address</label>
+                <input id="signup-email" class="md-input" type="email" name="email" placeholder="name@example.com" required autofocus>
             </div>
 
             <div class="md-field">
                 <label class="md-label" for="signup-password">Password</label>
-                <input id="signup-password" class="md-input" type="password" name="password" placeholder="Create a Password" required>
+                <input id="signup-password" class="md-input" type="password" name="password" placeholder="Create a strong password" required>
             </div>
 
-            <button class="md-button" type="submit">Create Account</button>
+            <button class="md-button" type="submit" style="margin-top: 1rem;">Create My Account</button>
+            
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="{{ url_for('auth.login') }}" style="color: var(--text-secondary); font-size: 0.9rem;">Already have an account? <span style="color: var(--accent); font-weight: 700;">Login</span></a>
+            </div>
         </form>
     </article>
 </section>
