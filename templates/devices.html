@@ -8,7 +8,9 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     </head>
     <body>
-        <h1>Hi, David!</h1>
+        <h1>
+            Hi{% if current_user.is_authenticated %}, {{ current_user.name }}{% endif %}!
+        </h1>
         <table border = "1">
             <caption>Device List</caption>
             <tr>
