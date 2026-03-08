@@ -2,56 +2,139 @@
 
 {% block content %}
 {% if current_user.is_authenticated %}
-<section class="page-wrap">
-  <div class="dash-welcome">
-    <h1 class="dash-welcome__title">Hello{% if current_user.name %}, {{ current_user.name }}{% endif %}!</h1>
-    <p class="dash-welcome__subtitle">Quick access to your device categories.</p>
-  </div>
-  <!-- Device Control Grid -->
-  <div class="dash-grid">
-      <a href="{{ url_for('routes.devices') }}?filter=lights" class="dash-widget dash-widget--light">
-        <svg class="dash-widget__icon"><use xlink:href="#icon-light"></use></svg>
-        <div class="dash-widget__label">Lights</div>
-      </a>
-      <a href="{{ url_for('routes.devices') }}?filter=heating" class="dash-widget dash-widget--heating">
-        <svg class="dash-widget__icon"><use xlink:href="#icon-heating"></use></svg>
-        <div class="dash-widget__label">Heating</div>
-      </a>
-      <a href="{{ url_for('routes.devices') }}?filter=ac" class="dash-widget dash-widget--ac">
-        <svg class="dash-widget__icon"><use xlink:href="#icon-ac"></use></svg>
-        <div class="dash-widget__label">Air Conditioner</div>
-      </a>
-      <a href="{{ url_for('routes.devices') }}?filter=cameras" class="dash-widget dash-widget--camera">
-        <svg class="dash-widget__icon"><use xlink:href="#icon-camera"></use></svg>
-        <div class="dash-widget__label">Cameras</div>
-      </a>
-      <a href="{{ url_for('routes.devices') }}?filter=doors" class="dash-widget dash-widget--door">
-        <svg class="dash-widget__icon"><use xlink:href="#icon-door"></use></svg>
-        <div class="dash-widget__label">Doors</div>
-      </a>
-      <a href="{{ url_for('routes.devices') }}?filter=alarm" class="dash-widget dash-widget--alarm">
-        <svg class="dash-widget__icon"><use xlink:href="#icon-alarm"></use></svg>
-        <div class="dash-widget__label">Alarm</div>
-      </a>
-      <a href="{{ url_for('routes.devices') }}?filter=garage" class="dash-widget dash-widget--garage">
-        <svg class="dash-widget__icon"><use xlink:href="#icon-garage"></use></svg>
-        <div class="dash-widget__label">Garage</div>
-      </a>
-      <a href="{{ url_for('routes.devices') }}?filter=garden" class="dash-widget dash-widget--garden">
-        <svg class="dash-widget__icon"><use xlink:href="#icon-garden"></use></svg>
-        <div class="dash-widget__label">Garden</div>
-      </a>
-  </div>
+<div class="dash-container">
+    <!-- Top Left: Welcome & Summary -->
+    <section class="summary-box">
+        <h1>Hello, {{ current_user.name if current_user.name else 'User' }}!</h1>
+        <p>Welcome home! Everything is under control.</p>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-weather"></use></svg>
+                <div>
+                    <span class="stat-item__value">15°</span>
+                    <span class="stat-item__label">Weather</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-humidity"></use></svg>
+                <div>
+                    <span class="stat-item__value">45%</span>
+                    <span class="stat-item__label">Humidity</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-temp"></use></svg>
+                <div>
+                    <span class="stat-item__value">22°</span>
+                    <span class="stat-item__label">Indoor</span>
+                </div>
+            </div>
+        </div>
+    </section>
 
-</section>
+    <!-- Bottom Left: Category Grid -->
+    <section class="category-grid">
+        <a href="{{ url_for('routes.devices') }}?filter=lights" class="category-card category-card--active">
+            <svg class="category-card__icon"><use xlink:href="#icon-light"></use></svg>
+            <span>Lights</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=heating" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-heating"></use></svg>
+            <span>Heating</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=ac" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-ac"></use></svg>
+            <span>AC</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=cameras" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-camera"></use></svg>
+            <span>Cameras</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=doors" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-door"></use></svg>
+            <span>Doors</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=alarm" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-alarm"></use></svg>
+            <span>Alarm</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=garage" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-garage"></use></svg>
+            <span>Garage</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=garden" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-garden"></use></svg>
+            <span>Garden</span>
+        </a>
+    </section>
+
+    <!-- Middle Column: Gauges -->
+    <aside class="gadgets-column">
+        <div class="premium-card">
+            <h3 style="text-align:center;">Temperature</h3>
+            <div class="gauge-container">
+                <svg class="gauge-svg" viewBox="0 0 100 100">
+                    <circle class="gauge-bg" cx="50" cy="50" r="45"/>
+                    <circle class="gauge-bar" cx="50" cy="50" r="45" style="stroke-dasharray: 212, 283;"/>
+                </svg>
+                <div class="gauge-value">
+                    <span class="big">22°</span>
+                    <span class="small">Celsius</span>
+                </div>
+            </div>
+            <p style="text-align: center; font-size: 0.8rem; margin:0;">Target: 24° in 20 min</p>
+        </div>
+
+        <div class="premium-card">
+            <h3 style="text-align:center;">Power Usage</h3>
+            <div class="gauge-container">
+                <svg class="gauge-svg" viewBox="0 0 100 100">
+                    <circle class="gauge-bg" cx="50" cy="50" r="45"/>
+                    <circle class="gauge-bar" cx="50" cy="50" r="45" style="stroke: #ec4899; stroke-dasharray: 180, 283;"/>
+                </svg>
+                <div class="gauge-value">
+                    <span class="big">135</span>
+                    <span class="small">Kwh</span>
+                </div>
+            </div>
+            <p style="text-align: center; font-size: 0.8rem; margin:0;">Saving 18% this month</p>
+        </div>
+    </aside>
+
+    <!-- Right Side: Controls -->
+    <aside class="side-column">
+        <div class="side-widget">
+            <div class="side-widget__header">
+                <span class="side-widget__title">Lighting</span>
+                <div class="toggle-switch toggle-switch--on"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                <svg style="width: 60px; height: 60px; color: var(--color-light);"><use xlink:href="#icon-bulb"></use></svg>
+                <span style="font-weight: 600;">Main Studio</span>
+            </div>
+        </div>
+
+        <div class="side-widget">
+            <div class="side-widget__header">
+                <span class="side-widget__title">Security</span>
+                <div class="toggle-switch"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                <svg style="width: 60px; height: 60px; color: var(--color-door);"><use xlink:href="#icon-shield"></use></svg>
+                <span style="font-weight: 600;">Front Door</span>
+            </div>
+        </div>
+    </aside>
+</div>
 {% else %}
 <section class="auth-wrap">
-  <article class="card auth-card">
-    <h1 class="title">Smart Home Hub</h1>
-    <p class="subtitle">Control your devices with confidence. Authentication, authorization, and orchestration in one place.</p>
-    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
-      <a class="md-button" href="{{ url_for('auth.login') }}">Login</a>
-      <a class="md-button" href="{{ url_for('auth.signup') }}" style="background: var(--bg-tertiary); color: var(--text-primary);">Sign Up</a>
+  <article class="auth-card">
+    <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Smart Home Hub</h1>
+    <p style="margin-bottom: 2rem; opacity: 0.8;">Premium orchestration for your modern home.</p>
+    <div style="display: grid; gap: 1rem;">
+      <a class="md-button" href="{{ url_for('auth.login') }}">Enter Dashboard</a>
+      <a href="{{ url_for('auth.signup') }}" style="color: var(--text-secondary); font-size: 0.9rem;">Don't have an account? Sign up</a>
     </div>
   </article>
 </section>
