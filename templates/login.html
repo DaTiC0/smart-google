@@ -1,35 +1,41 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="page-wrap">
-    <article class="card">
-        <h1>Login</h1>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <div class="card-alert" role="alert">
-            {{ messages[0] }}
-        </div>
-    {% endif %}
-    {% endwith %}
+<section class="auth-wrap">
+    <article class="auth-card">
+        <h1 style="text-align: center; margin-bottom: 2.5rem;">Welcome Back</h1>
+        
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="card-alert" role="alert">
+                {{ messages[0] }}
+            </div>
+        {% endif %}
+        {% endwith %}
+
         <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
             <div class="md-field">
-                <label class="md-label" for="login-email">Email</label>
-                <input id="login-email" class="md-input" type="email" name="email" placeholder="Your Email" autofocus="">
+                <label class="md-label" for="login-email">Email Address</label>
+                <input id="login-email" class="md-input" type="email" name="email" placeholder="name@example.com" autofocus="" required>
             </div>
 
             <div class="md-field">
                 <label class="md-label" for="login-password">Password</label>
-                <input id="login-password" class="md-input" type="password" name="password" placeholder="Your Password">
+                <input id="login-password" class="md-input" type="password" name="password" placeholder="••••••••" required>
             </div>
 
             <div class="md-checkbox-row">
                 <label class="md-checkbox-label">
-                    <input type="checkbox" name="remember">
-                    Remember me
+                    <input type="checkbox" name="remember" style="accent-color: var(--accent);">
+                    Stay logged in
                 </label>
             </div>
 
-            <button class="md-button" type="submit">Login</button>
+            <button class="md-button" type="submit" style="margin-top: 1rem;">Login to Dashboard</button>
+            
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="{{ url_for('auth.signup') }}" style="color: var(--text-secondary); font-size: 0.9rem;">Don't have an account? <span style="color: var(--accent); font-weight: 700;">Sign up</span></a>
+            </div>
         </form>
     </article>
 </section>
