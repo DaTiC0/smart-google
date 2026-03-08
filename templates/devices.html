@@ -1,32 +1,53 @@
-<html>
-    <head>
-        {% if title %}
-        <title>{{ title }} - List</title>
-        {% else %}
-        <title>Welcome to Devices</title>
-        {% endif %}
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <h1>
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-wrap">
+    <div class="dash-welcome">
+        <h1 class="dash-welcome__title">
             Hi{% if current_user.is_authenticated %}, {{ current_user.name }}{% endif %}!
         </h1>
-        <table border = "1">
-            <caption>Device List</caption>
-            <tr>
-              <th>Name</th>
-              <th>ID</th>
-              <th>Type</th>
-              <th>Status</th>
-            </tr>         
-        {% for device in devices %}
-        <tr>
-            <td>{{ device.name.name }}</td>
-            <td>{{ device.id }}</td>
-            <td>{{ device.type }}</td>
-            <td>Unknown</td>
-          </tr>
-        {% endfor %}
-    </table>
-    </body>
-</html>
+        <p class="dash-welcome__subtitle">Manage all your connected smart home devices</p>
+    </div>
+
+    <article class="dash-card">
+        <div class="dash-card__header">
+            <h2 class="dash-card__title">Device List</h2>
+        </div>
+
+        <div class="md-table-wrap">
+            <table class="md-table">
+                <thead>
+                    <tr>
+                        <th>Device Name</th>
+                        <th>Device ID</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% if devices and devices|length > 0 %}
+                    {% for device in devices %}
+                    <tr>
+                        <td style="font-weight: 600;">{{ device.name.name }}</td>
+                        <td style="font-family: monospace; font-size: 0.9rem; color: var(--text-muted);">{{ device.id }}</td>
+                        <td>{{ device.type }}</td>
+                        <td>
+                            <span class="status-pill status-pill--active">Active</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 4rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">🏠</div>
+                            <div style="font-weight: 600; font-size: 1.125rem;">No devices connected yet</div>
+                            <div style="color: var(--text-muted); margin-top: 0.5rem;">Add your first smart device to get started</div>
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
+{% endblock %}

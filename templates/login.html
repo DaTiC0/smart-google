@@ -1,36 +1,36 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="column is-4 is-offset-4">
-    <h3 class="title">Login</h3>
-    <div class="box">
+<section class="page-wrap">
+    <article class="card">
+        <h1>Login</h1>
     {% with messages = get_flashed_messages() %}
     {% if messages %}
-        <div class="notification is-danger">
+        <div class="card-alert" role="alert">
             {{ messages[0] }}
         </div>
     {% endif %}
     {% endwith %}
-        <form method="POST" action="{{ url_for('auth.login') }}">
-            <div class="field">
-                <div class="control">
-                    <input class="input is-large" type="email" name="email" placeholder="Your Email" autofocus="">
-                </div>
+        <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
+            <div class="md-field">
+                <label class="md-label" for="login-email">Email</label>
+                <input id="login-email" class="md-input" type="email" name="email" placeholder="Your Email" autofocus="">
             </div>
 
-            <div class="field">
-                <div class="control">
-                    <input class="input is-large" type="password" name="password" placeholder="Your Password">
-                </div>
+            <div class="md-field">
+                <label class="md-label" for="login-password">Password</label>
+                <input id="login-password" class="md-input" type="password" name="password" placeholder="Your Password">
             </div>
-            <div class="field">
-                <label class="checkbox">
+
+            <div class="md-checkbox-row">
+                <label class="md-checkbox-label">
                     <input type="checkbox" name="remember">
                     Remember me
                 </label>
             </div>
-            <button class="button is-block is-info is-large is-fullwidth">Login</button>
+
+            <button class="md-button" type="submit">Login</button>
         </form>
-    </div>
-</div>
+    </article>
+</section>
 {% endblock %}

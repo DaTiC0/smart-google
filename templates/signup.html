@@ -1,37 +1,34 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="column is-4 is-offset-4">
-    <h3 class="title">Sign Up</h3>
-    <div class="box">
+<section class="page-wrap" style="max-width: 480px;">
+    <article class="card">
+        <h1 style="text-align: center;">Sign Up</h1>
         {% with messages = get_flashed_messages() %}
         {% if messages %}
-            <div class="notification is-danger">
-                {{ messages[0] }}. Go to <a href="{{ url_for('auth.login') }}">login page</a>.
+            <div class="card-alert" role="alert">
+                {{ messages[0] }}. Go to <a href="{{ url_for('auth.login') }}" style="font-weight: 700;">login page</a>.
             </div>
         {% endif %}
         {% endwith %}
-        <form method="POST" action="{{ url_for('auth.signup') }}">
-            <div class="field">
-                <div class="control">
-                    <input class="input is-large" type="email" name="email" placeholder="Email" autofocus="">
-                </div>
+        <form method="POST" action="{{ url_for('auth.signup') }}" class="auth-form">
+            <div class="md-field">
+                <label class="md-label" for="signup-email">Email</label>
+                <input id="signup-email" class="md-input" type="email" name="email" placeholder="Your Email" autofocus required>
             </div>
 
-            <div class="field">
-                <div class="control">
-                    <input class="input is-large" type="text" name="name" placeholder="Name" autofocus="">
-                </div>
+            <div class="md-field">
+                <label class="md-label" for="signup-name">Name</label>
+                <input id="signup-name" class="md-input" type="text" name="name" placeholder="Your Name" required>
             </div>
 
-            <div class="field">
-                <div class="control">
-                    <input class="input is-large" type="password" name="password" placeholder="Password">
-                </div>
+            <div class="md-field">
+                <label class="md-label" for="signup-password">Password</label>
+                <input id="signup-password" class="md-input" type="password" name="password" placeholder="Create a Password" required>
             </div>
 
-            <button class="button is-block is-info is-large is-fullwidth">Sign Up</button>
+            <button class="md-button" type="submit">Create Account</button>
         </form>
-    </div>
-</div>
+    </article>
+</section>
 {% endblock %}

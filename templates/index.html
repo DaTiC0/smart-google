@@ -1,10 +1,59 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="title">
-  This is Main Page
-</h1>
-<h2 class="subtitle">
-  authentication and authorization.
-</h2>
+{% if current_user.is_authenticated %}
+<section class="page-wrap">
+  <div class="dash-welcome">
+    <h1 class="dash-welcome__title">Hello{% if current_user.name %}, {{ current_user.name }}{% endif %}!</h1>
+    <p class="dash-welcome__subtitle">Quick access to your device categories.</p>
+  </div>
+  <!-- Device Control Grid -->
+  <div class="dash-grid">
+      <a href="{{ url_for('routes.devices') }}?filter=lights" class="dash-widget dash-widget--light">
+        <svg class="dash-widget__icon"><use xlink:href="#icon-light"></use></svg>
+        <div class="dash-widget__label">Lights</div>
+      </a>
+      <a href="{{ url_for('routes.devices') }}?filter=heating" class="dash-widget dash-widget--heating">
+        <svg class="dash-widget__icon"><use xlink:href="#icon-heating"></use></svg>
+        <div class="dash-widget__label">Heating</div>
+      </a>
+      <a href="{{ url_for('routes.devices') }}?filter=ac" class="dash-widget dash-widget--ac">
+        <svg class="dash-widget__icon"><use xlink:href="#icon-ac"></use></svg>
+        <div class="dash-widget__label">Air Conditioner</div>
+      </a>
+      <a href="{{ url_for('routes.devices') }}?filter=cameras" class="dash-widget dash-widget--camera">
+        <svg class="dash-widget__icon"><use xlink:href="#icon-camera"></use></svg>
+        <div class="dash-widget__label">Cameras</div>
+      </a>
+      <a href="{{ url_for('routes.devices') }}?filter=doors" class="dash-widget dash-widget--door">
+        <svg class="dash-widget__icon"><use xlink:href="#icon-door"></use></svg>
+        <div class="dash-widget__label">Doors</div>
+      </a>
+      <a href="{{ url_for('routes.devices') }}?filter=alarm" class="dash-widget dash-widget--alarm">
+        <svg class="dash-widget__icon"><use xlink:href="#icon-alarm"></use></svg>
+        <div class="dash-widget__label">Alarm</div>
+      </a>
+      <a href="{{ url_for('routes.devices') }}?filter=garage" class="dash-widget dash-widget--garage">
+        <svg class="dash-widget__icon"><use xlink:href="#icon-garage"></use></svg>
+        <div class="dash-widget__label">Garage</div>
+      </a>
+      <a href="{{ url_for('routes.devices') }}?filter=garden" class="dash-widget dash-widget--garden">
+        <svg class="dash-widget__icon"><use xlink:href="#icon-garden"></use></svg>
+        <div class="dash-widget__label">Garden</div>
+      </a>
+  </div>
+
+</section>
+{% else %}
+<section class="auth-wrap">
+  <article class="card auth-card">
+    <h1 class="title">Smart Home Hub</h1>
+    <p class="subtitle">Control your devices with confidence. Authentication, authorization, and orchestration in one place.</p>
+    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
+      <a class="md-button" href="{{ url_for('auth.login') }}">Login</a>
+      <a class="md-button" href="{{ url_for('auth.signup') }}" style="background: var(--bg-tertiary); color: var(--text-primary);">Sign Up</a>
+    </div>
+  </article>
+</section>
+{% endif %}
 {% endblock %}

@@ -1,57 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DaTi_SmarT</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='md3.css') }}" />
 </head>
 
-<body>
-    <section class="hero is-primary is-fullheight">
+<body class="app-body">
+    <!-- SVG Sprite -->
+    <div style="display: none;">
+        {% include 'icons.svg' %}
+    </div>
 
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a href="{{ url_for('routes.index') }}" class="navbar-item">
-                                Home
-                            </a>
-                            {% if current_user.is_authenticated %}
-                            <a href="{{ url_for('routes.profile') }}" class="navbar-item">
-                                Profile
-                            </a>
-                            {% endif %}
-                            {% if not current_user.is_authenticated %}
-                            <a href="{{ url_for('auth.login') }}" class="navbar-item">
-                                Login
-                            </a>
-                            <a href="{{ url_for('auth.signup') }}" class="navbar-item">
-                                Sign Up
-                            </a>
-                            {% endif %}
-                            {% if current_user.is_authenticated %}
-                            <a href="{{ url_for('auth.logout') }}" class="navbar-item">
-                                Logout
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-
-        <div class="hero-body">
-            <div class="container has-text-centered">
-               {% block content %}
-               {% endblock %}
+    <nav class="nav">
+        <div class="nav__container">
+            <a href="{{ url_for('routes.index') }}" class="nav__brand">DaTi_SmarT</a>
+            <div class="nav__actions">
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('routes.devices') }}" class="nav__link">Devices</a>
+                <a href="{{ url_for('routes.profile') }}" class="nav__link">Profile</a>
+                <a href="{{ url_for('auth.logout') }}" class="nav__link">Logout</a>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="nav__link">Login</a>
+                {% endif %}
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">🌙</button>
             </div>
         </div>
-    </section>
+    </nav>
+
+    <main class="app-main" role="main">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <script>
+    (function(){
+        const btn = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        const update = (theme)=>{
+            html.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            btn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+        };
+        const saved = localStorage.getItem('theme');
+        const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        update(saved||prefers);
+        btn && btn.addEventListener('click',()=>{
+            const current = html.getAttribute('data-theme');
+            update(current === 'dark' ? 'light' : 'dark');
+        });
+    })();
+    </script>
 </body>
 
 </html>
