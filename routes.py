@@ -3,9 +3,10 @@
 
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response
 from flask_login import login_required, current_user
+from sqlalchemy import select
 from action_devices import onSync, report_state, request_sync, actions
-from models import Client
-from my_oauth import get_current_user, oauth
+from models import Client, db
+from my_oauth import get_current_user, authorization, require_oauth, current_token
 from notifications import is_mqtt_connected
 
 
@@ -35,37 +36,40 @@ def profile():
 
 
 @bp.route('/oauth/token', methods=['POST'])
-@oauth.token_handler
 def access_token():
-    return {'version': '0.1.0'}
+    return authorization.create_token_response()
 
 
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])
-# Both GET (render consent page) and POST (handle form submission) are required
-# by the OAuth2 Authorization Code flow and the @oauth.authorize_handler decorator.
-@oauth.authorize_handler
-def authorize(*args, **kwargs):
+def authorize():
     user = get_current_user()
     if not user:
         return redirect('/')
+
     if request.method == 'GET':
-        client_id = kwargs.get('client_id')
-        client = Client.query.filter_by(client_id=client_id).first()
+        try:
+            grant = authorization.validate_consent_request(end_user=user)
+        except Exception:
+            return redirect('/')
+        client_id = request.args.get('client_id')
+        client = db.session.execute(
+            select(Client).filter_by(client_id=client_id)
+        ).scalar_one_or_none()
         if client is None:
             return redirect('/')
-        kwargs['client'] = client
-        kwargs['user'] = user
-        return render_template('authorize.html', **kwargs)
+        return render_template('authorize.html', grant=grant, user=user, client=client)
 
-    confirm = request.form.get('confirm', 'no')
-    return confirm == 'yes'
+    confirmed = request.form.get('confirm', 'no') == 'yes'
+    return authorization.create_authorization_response(
+        grant_user=user if confirmed else None
+    )
 
 
 @bp.route('/api/me')
-@oauth.require_oauth()
-def me(req):
-    user = req.user
-    return jsonify(username=user.username)
+@require_oauth()
+def me():
+    user = current_token.user
+    return jsonify(email=user.email)
 
 
 @bp.route('/sync')

@@ -1,8 +1,11 @@
+import logging
 import time
 import json
 from flask import current_app
 from google.auth import crypt, jwt
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 def generate_jwt(service_account):
@@ -16,6 +19,7 @@ def generate_jwt(service_account):
         'scope': 'https://www.googleapis.com/auth/homegraph'
     }
 
+    # google-auth >= 2.x returns a str; no .decode() needed
     return jwt.encode(signer, payload)
 
 
@@ -41,19 +45,19 @@ def report_state(access_token, report_state_file):
     }
     data = report_state_file
     response = requests.post(url, headers=headers, json=data)
-    print('Response: ' + response.text)
+    logger.info('Response: %s', response.text)
 
     return response.status_code == requests.codes.ok
 
 
 def main(report_state_file):
     service_account = current_app.config['SERVICE_ACCOUNT_DATA']
-    print('By ReportState')
-    signed_jwt = generate_jwt(service_account).decode("utf-8")  # Decode
+    logger.info('By ReportState')
+    signed_jwt = generate_jwt(service_account)
     access_token = get_access_token(signed_jwt)
     success = report_state(access_token, report_state_file)
 
     if success:
-        print('Report State has been done successfully.')
+        logger.info('Report State has been done successfully.')
     else:
-        print('Report State failed. Please check the log above.')
+        logger.error('Report State failed. Please check the log above.')
