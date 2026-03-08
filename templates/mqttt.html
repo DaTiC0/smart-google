@@ -1,20 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <title>DaTi_SmarT</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-
-<body>
-    <div class="login-form">
-        <p>MQTT MESSAGE:</p>
-        <form method="post" action="/">
-            <input type="text" class="login-field" name="command">
-            <input type="submit" class="btn btn-primary btn-large btn-block">
+{% block content %}
+<section class="auth-wrap">
+    <article class="md-card auth-card">
+        <h1 class="md-title">MQTT Message</h1>
+        <form method="post" action="{{ url_for('routes.index') }}" class="auth-form">
+            <div class="md-field">
+                <label class="md-label" for="mqtt-command">Command</label>
+                <input id="mqtt-command" type="text" class="md-input" name="command">
+            </div>
+            <button class="md-button" type="submit">Send</button>
         </form>
-    </div>
-</body>
-
-</html>
+    </article>
+</section>
+{% endblock %}

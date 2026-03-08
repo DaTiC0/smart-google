@@ -1,7 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="title">
-  Welcome, {{ name }}!
-</h1>
+<section class="page-wrap" style="max-width: 800px;">
+  <article class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+      <div>
+        <h1 style="margin: 0;">Welcome, {{ name }}!</h1>
+        <p>Your account is active and connected.</p>
+      </div>
+      <div style="width: 64px; height: 64px; background: var(--accent); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px;">
+        👤
+      </div>
+    </div>
+    
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a class="md-button" href="{{ url_for('routes.devices') }}">Manage Devices</a>
+        <a class="md-button" href="{{ url_for('routes.index') }}" style="background: var(--bg-tertiary); color: var(--text-primary);">Dashboard</a>
+        <a class="md-button" href="{{ url_for('auth.logout') }}" style="background: #fee2e2; color: #7f1d1d;">Logout</a>
+    </div>
+  </article>
+</section>
 {% endblock %}

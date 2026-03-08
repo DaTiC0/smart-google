@@ -1,37 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-  <meta charset="UTF-8">
-  <title>DaTi_SmarT</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% block content %}
+<section class="auth-wrap">
+  <article class="md-card auth-card">
+    <h1 class="md-title">Login</h1>
+    {% if user %}
+    <p class="md-meta">You are {{ user.username }}</p>
+    {% else %}
+    <p class="md-meta">You are not authenticated</p>
+    {% endif %}
 
-<body>
-  <div class="login">
-    <div class="login-screen">
-      <div class="app-title">
-        <h1>Login</h1>
+    <form method="post" action="{{ url_for('routes.index') }}" class="auth-form">
+      <div class="md-field">
+        <label class="md-label" for="home-username">Type any username</label>
+        <input id="home-username" type="text" class="md-input" name="username">
       </div>
-      {% if user %}
-      <p>You are {{ user.username }}</p>
-      {% else %}
-      <p>You are not authenticated</p>
-      {% endif %}
-      <div class="login-form">
-        <div class="control-group">
-          <p>Type any username:</p>
-        
-        <form method="post" action="/">
-          <input type="text" class="login-field" name="username">
-          <label class="login-field-icon fui-user" for="login-name"></label>
-        </div>
-          <input type="submit" class="btn btn-primary btn-large btn-block">
-      </div>
-      </form>
-    </div>
-  </div>
-
-</body>
-
-</html>
+      <button class="md-button" type="submit">Submit</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

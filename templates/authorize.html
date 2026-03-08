@@ -1,22 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Authorization</title>
-</head>
-<body>
-  <p>Client: {{ client.client_id }}</p>
-  <p>User: {{ user.username }}</p>
-  <form action="{{ url_for('routes.authorize') }}" method="post">
-    <p>Allow access?</p>
-    <input type="hidden" name="client_id" value="{{ client.client_id }}">
-    <input type="hidden" name="scope" value="{{ scopes|join(' ') }}">
-    <input type="hidden" name="response_type" value="{{ response_type }}">
-    {% if state %}
-    <input type="hidden" name="state" value="{{ state }}">
-    {% endif %}
-    <input type="submit" name="confirm" value="yes">
-    <input type="submit" name="confirm" value="no">
-  </form>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<section class="auth-wrap">
+  <article class="card auth-card">
+    <h1>Authorization</h1>
+    <p style="margin-bottom: 0.5rem;"><strong>Client:</strong> {{ client.client_id }}</p>
+    <p><strong>User:</strong> {{ user.username }}</p>
+
+    <form action="{{ url_for('routes.authorize') }}" method="post" class="auth-form" style="margin-top: 1.5rem;">
+      <p style="font-weight: 600;">Allow access to your smart home?</p>
+      <input type="hidden" name="client_id" value="{{ client.client_id }}">
+      <input type="hidden" name="scope" value="{{ scopes|join(' ') }}">
+      <input type="hidden" name="response_type" value="{{ response_type }}">
+      {% if state %}
+      <input type="hidden" name="state" value="{{ state }}">
+      {% endif %}
+
+      <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+        <button class="md-button" type="submit" name="confirm" value="yes">Allow</button>
+        <button class="md-button" type="submit" name="confirm" value="no" style="background: var(--bg-tertiary); color: var(--text-primary);">Deny</button>
+      </div>
+    </form>
+  </article>
+</section>
+{% endblock %}
