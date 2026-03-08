@@ -16,20 +16,38 @@ class ApplicationRoutesTest(unittest.TestCase):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
+        body = response.get_data(as_text=True)
+        self.assertIsInstance(body, str)
+        self.assertNotEqual(body.strip(), "")
+
     def test_health_endpoint_contract(self):
         response = self.client.get('/health')
         self.assertIn(response.status_code, (200, 503))
 
+        self.assertTrue(
+            response.content_type.startswith("application/json"),
+            msg=f"Unexpected content type: {response.content_type}",
+        )
+
         payload = response.get_json()
         self.assertIsInstance(payload, dict)
-        self.assertEqual(payload.get('service'), 'smart-google')
-        self.assertIsInstance(payload.get('mqtt_connected'), bool)
-        self.assertIn(payload.get('status'), ('ok', 'degraded'))
+
+        self.assertIn("service", payload)
+        self.assertIsInstance(payload["service"], str)
+        self.assertTrue(payload["service"])
+        self.assertEqual(payload["service"], "smart-google")
+
+        self.assertIn("mqtt_connected", payload)
+        self.assertIsInstance(payload["mqtt_connected"], bool)
+
+        self.assertIn("status", payload)
+        self.assertIsInstance(payload["status"], str)
+        self.assertIn(payload["status"], ("ok", "degraded"))
 
         if response.status_code == 200:
-            self.assertEqual(payload.get('status'), 'ok')
+            self.assertEqual(payload["status"], "ok")
         else:
-            self.assertEqual(payload.get('status'), 'degraded')
+            self.assertEqual(payload["status"], "degraded")
 
 
 class AllowedFileTest(unittest.TestCase):
