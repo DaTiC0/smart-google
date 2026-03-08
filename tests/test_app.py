@@ -4,9 +4,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app import app as flask_app
-from app import allowed_file
-from app import FULL_FEATURES
+from app import app as flask_app  # noqa: E402
+from app import allowed_file  # noqa: E402
+from app import FULL_FEATURES  # noqa: E402
 
 
 class ApplicationRoutesTest(unittest.TestCase):
