@@ -16,7 +16,7 @@ test:
 		if [ $$code -eq 5 ]; then echo "No tests discovered"; exit 0; fi; \
 		exit $$code; \
 	else \
-		$(PYTHON) -m unittest discover -s tests -v; \
+		$(PYTHON) -m unittest discover -s tests -p 'test*.py' -v; \
 	fi
 
 health:
