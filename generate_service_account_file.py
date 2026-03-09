@@ -14,7 +14,7 @@ load_dotenv(path.join(basedir, '.env'))
 
 
 def generate_file():
-    s_file = environ.get('SERVICE_ACCOUNT_FILE')
+    s_file = path.join(basedir, 'service_account_file.json')
     with open(s_file) as json_file:
         data = json.load(json_file)
     data.update({

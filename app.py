@@ -58,9 +58,12 @@ app.register_blueprint(bp, url_prefix='')
 app.register_blueprint(auth, url_prefix='')
 
 # MQTT CONNECT
-mqtt.init_app(app)
-mqtt.subscribe('+/notification')
-mqtt.subscribe('+/status')
+try:
+    mqtt.init_app(app)
+    mqtt.subscribe('+/notification')
+    mqtt.subscribe('+/status')
+except Exception as e:
+    logger.warning('MQTT initialization skipped: %s', e)
 
 # SQLAlchemy DATABASE
 db.init_app(app)
