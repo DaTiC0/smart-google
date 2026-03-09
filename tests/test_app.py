@@ -6,7 +6,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import app as flask_app  # noqa: E402
 from app import allowed_file  # noqa: E402
-from app import FULL_FEATURES  # noqa: E402
 from models import db, User  # noqa: E402
 from sqlalchemy import select  # used in cleanup queries
 
@@ -23,24 +22,11 @@ class ApplicationRoutesTest(unittest.TestCase):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
-        if not FULL_FEATURES:
-            self.assertTrue(
-                response.content_type.startswith("application/json"),
-                msg=f"Unexpected content type: {response.content_type}",
-            )
-            data = response.get_json()
-            self.assertIsInstance(data, dict)
-            self.assertIn("status", data)
-            self.assertEqual(data["status"], "Smart-Google is working!")
-        else:
-            body = response.get_data(as_text=True)
-            self.assertIsInstance(body, str)
-            self.assertNotEqual(body.strip(), "")
+        body = response.get_data(as_text=True)
+        self.assertIsInstance(body, str)
+        self.assertNotEqual(body.strip(), "")
 
     def test_health_endpoint_contract(self):
-        if not FULL_FEATURES:
-            self.skipTest("FULL_FEATURES is False; skipping /health contract test.")
-
         response = self.client.get('/health')
         self.assertIn(response.status_code, (200, 503))
 
