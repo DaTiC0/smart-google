@@ -2,9 +2,9 @@
 # Code By DaTi_Co
 
 import logging
-from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response
+from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response, url_for
 from flask_login import login_required, current_user
-from action_devices import onSync, report_state, request_sync, actions
+from action_devices import onSync, report_state, request_sync, actions, rquery
 from models import Client
 from my_oauth import get_current_user, oauth
 from notifications import is_mqtt_connected
@@ -106,6 +106,26 @@ def devices():
     device_list = dev_req['devices']
     logger.debug("Device list: %s", device_list)
     return render_template('devices.html', title='Smart-Home', devices=device_list)
+
+
+@bp.route('/device/<device_id>')
+@login_required
+def device_status(device_id):
+    # Get specific device data
+    dev_req = onSync()
+    device = next((d for d in dev_req['devices'] if d['id'] == device_id), None)
+    if not device:
+        return redirect(url_for('routes.devices'))
+    
+    # Get current states
+    states = rquery(device_id)
+    return render_template('device_status.html', device=device, states=states)
+
+
+@bp.route('/mqtt')
+@login_required
+def mqtt_log():
+    return render_template('mqtt_log.html')
 
 
 @bp.route('/smarthome', methods=['POST'])

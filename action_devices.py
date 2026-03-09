@@ -154,7 +154,8 @@ def rquery(deviceId):
         return {"online": False}
     try:
         ref = reference()
-        return ref.child(deviceId).child('states').get()
+        res = ref.child(deviceId).child('states').get()
+        return res if res is not None else {"online": False}
     except Exception as e:
         logger.error("Error querying device %s: %s", deviceId, e)
         return {"online": False}
