@@ -146,7 +146,8 @@ def rsync():
 def rquery(deviceId):
     try:
         ref = reference()
-        return ref.child(deviceId).child('states').get()
+        res = ref.child(deviceId).child('states').get()
+        return res if res is not None else {"online": False}
     except Exception as e:
         print(f"Error querying device {deviceId}: {e}")
         return {"online": False}
