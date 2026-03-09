@@ -2,10 +2,11 @@
 # Code By DaTi_Co
 import os
 import logging
+from typing import Any, cast
 
 from flask import Flask, send_from_directory
 from flask_login import LoginManager
-from firebase_admin import credentials, initialize_app
+from firebase_admin import credentials, initialize_app, get_app
 from auth import auth
 from models import User, db
 from my_oauth import oauth
@@ -16,14 +17,24 @@ from routes import bp
 logger = logging.getLogger(__name__)
 
 
-def _is_production_environment() -> bool:
-    """Detect production environment in a way that works across Flask setups."""
-    flask_env = os.getenv('FLASK_ENV', '').lower()
-    return flask_env == 'production'
+def _get_config_object() -> str:
+    """Resolve config from explicit APP_ENV with FLASK_ENV fallback."""
+    environment = os.getenv('APP_ENV', os.getenv('FLASK_ENV', 'development')).lower()
+    if environment in {'production', 'prod'}:
+        return 'config.ProductionConfig'
+    return 'config.DevelopmentConfig'
 
 
 def _init_firebase(flask_app: Flask) -> None:
     """Initialize Firebase only when required configuration is available."""
+    # Avoid duplicate default app initialization when module reload/import happens.
+    try:
+        get_app()
+        logger.info('Firebase already initialized; skipping re-initialization.')
+        return
+    except ValueError:
+        pass
+
     service_account_data = flask_app.config.get('SERVICE_ACCOUNT_DATA')
     database_url = flask_app.config.get('DATABASEURL')
 
@@ -38,14 +49,7 @@ def _init_firebase(flask_app: Flask) -> None:
 
 # Flask Application Configuration
 app = Flask(__name__, template_folder='templates')
-if _is_production_environment():
-    app.config.from_object("config.ProductionConfig")
-else:
-    app.config.from_object("config.DevelopmentConfig")
-
-# Keep the imported WSGI app instance non-debug to avoid setup-order assertions
-# in shared-instance test scenarios. Debug can still be enabled when running directly.
-app.debug = False
+app.config.from_object(_get_config_object())
 
 logger.info('ENV is set to: %s', app.config.get('ENV'))
 logger.info('Agent USER.ID: %s', app.config.get('AGENT_USER_ID'))
@@ -66,7 +70,7 @@ oauth.init_app(app)
 
 # Flask Login
 login_manager = LoginManager()
-login_manager.login_view = 'auth.login'
+cast(Any, login_manager).login_view = 'auth.login'
 login_manager.init_app(app)
 
 # FIREBASE_CONFIG environment variable can be added
@@ -79,7 +83,8 @@ ALLOWED_EXTENSIONS = {'txt', 'py'}
 @login_manager.user_loader
 def load_user(user_id):
     """Get User ID"""
-    return db.session.get(User, int(user_id))
+    session = cast(Any, db.session)
+    return session.get(User, int(user_id))
 
 
 def allowed_file(filename):

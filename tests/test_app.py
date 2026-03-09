@@ -1,8 +1,14 @@
+# pyright: reportAttributeAccessIssue=false
 import unittest
 import sys
+import os
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# Ensure tests never touch runtime DB (db.sqlite)
+os.environ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+os.environ['APP_ENV'] = 'development'
 
 from app import app as flask_app  # noqa: E402
 from app import allowed_file  # noqa: E402
@@ -94,18 +100,6 @@ class AuthTests(unittest.TestCase):
             if result:
                 db.session.delete(result)
                 db.session.commit()
-
-    @classmethod
-    def setUpClass(cls):
-        flask_app.config.setdefault('SQLALCHEMY_DATABASE_URI', 'sqlite:///:memory:')
-        with flask_app.app_context():
-            db.init_app(flask_app)
-
-    @classmethod
-    def tearDownClass(cls):
-        with flask_app.app_context():
-            db.session.remove()
-            db.drop_all()
 
     def test_signup_and_login(self):
         resp = self.client.post('/signup', data={'email': 'a@b.com', 'name': 'A', 'password': 'pass'})
