@@ -1,7 +1,7 @@
 # coding: utf-8
 # Code By DaTi_Co
 # OAuth2
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask_oauthlib.provider import OAuth2Provider
 from flask import session
 from models import db
@@ -36,7 +36,7 @@ def load_grant(client_id, code):
 def save_grant(client_id, code, request, *args, **kwargs):
     # decide the expires time yourself
     print("save grant")
-    expires = datetime.utcnow() + timedelta(seconds=100)
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=100)
     grant = Grant(
         client_id=client_id,
         code=code['code'],
@@ -73,7 +73,7 @@ def save_token(token, request, *args, **kwargs):
         db.session.delete(t)
 
     expires_in = token.pop('expires_in')
-    expires = datetime.utcnow() + timedelta(seconds=expires_in)
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=expires_in)
 
     tok = Token(
         access_token=token['access_token'],

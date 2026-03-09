@@ -2,9 +2,12 @@
 # Code By DaTi_Co
 
 import json
+import logging
 import requests
 from flask import current_app
 from notifications import mqtt
+
+logger = logging.getLogger(__name__)
 
 try:
     import ReportState as state
@@ -12,7 +15,7 @@ try:
 except ImportError:
     state = None
     REPORTSTATE_AVAILABLE = False
-    print("ReportState module not available, some features may be disabled.")
+    logger.warning("ReportState module not available, some features may be disabled.")
 
 # Try to import firebase_admin, but provide fallback if not available
 try:
@@ -20,7 +23,7 @@ try:
     FIREBASE_AVAILABLE = True
 except ImportError:
     FIREBASE_AVAILABLE = False
-    print("Firebase admin not available, using mock data for testing")
+    logger.warning("Firebase admin not available, using mock data for testing")
 
 # Mock data for testing when Firebase is not available
 MOCK_DEVICES = {
@@ -90,7 +93,7 @@ def reference():
             return db.reference('/devices')
         except Exception as e:
             # Firebase is installed but not initialized (e.g. missing credentials in dev)
-            print(f"Firebase not initialized, falling back to mock data: {e}")
+            logger.warning("Firebase not initialized, falling back to mock data: %s", e)
     return MockRef()
 
 
@@ -109,15 +112,15 @@ def rstate():
         }
         for device in devices:
             device = str(device)
-            print('\nGetting Device status from: ' + device)
+            logger.debug('Getting Device status from: %s', device)
             state_data = rquery(device)
             if state_data:
                 payload['devices']['states'][device] = state_data
-            print(state_data)
+            logger.debug('Device state: %s', state_data)
 
         return payload
     except Exception as e:
-        print(f"Error in rstate: {e}")
+        logger.error("Error in rstate: %s", e)
         return {"devices": {"states": {}}}
 
 
@@ -139,7 +142,7 @@ def rsync():
             DEVICES.append(DEVICE)
         return DEVICES
     except Exception as e:
-        print(f"Error in rsync: {e}")
+        logger.error("Error in rsync: %s", e)
         return []
 
 
@@ -148,7 +151,7 @@ def rquery(deviceId):
         ref = reference()
         return ref.child(deviceId).child('states').get()
     except Exception as e:
-        print(f"Error querying device {deviceId}: {e}")
+        logger.error("Error querying device %s: %s", deviceId, e)
         return {"online": False}
 
 
@@ -158,7 +161,7 @@ def rexecute(deviceId, parameters):
         ref.child(deviceId).child('states').update(parameters)
         return ref.child(deviceId).child('states').get()
     except Exception as e:
-        print(f"Error executing on device {deviceId}: {e}")
+        logger.error("Error executing on device %s: %s", deviceId, e)
         return parameters
 
 
@@ -169,7 +172,7 @@ def onSync():
             "devices": rsync()
         }
     except Exception as e:
-        print(f"Error in onSync: {e}")
+        logger.error("Error in onSync: %s", e)
         return {"agentUserId": "test-user", "devices": []}
 
 
@@ -182,12 +185,12 @@ def onQuery(body):
         for i in body['inputs']:
             for device in i['payload']['devices']:
                 deviceId = device['id']
-                print('DEVICE ID: ' + deviceId)
+                logger.debug('DEVICE ID: %s', deviceId)
                 data = rquery(deviceId)
                 payload['devices'][deviceId] = data
         return payload
     except Exception as e:
-        print(f"Error in onQuery: {e}")
+        logger.error("Error in onQuery: %s", e)
         return {"devices": {}}
 
 
@@ -215,7 +218,7 @@ def onExecute(body):
                         payload = commands(payload, deviceId, execCommand, params)
         return payload
     except Exception as e:
-        print(f"Error in onExecute: {e}")
+        logger.error("Error in onExecute: %s", e)
         return {'commands': [{'ids': [], 'status': 'ERROR', 'errorCode': 'deviceNotFound'}]}
 
 
@@ -225,26 +228,26 @@ def commands(payload, deviceId, execCommand, params):
     try:
         if execCommand == 'action.devices.commands.OnOff':
             if 'on' not in params:
-                print("Error: 'on' parameter missing for OnOff command")
+                logger.error("Error: 'on' parameter missing for OnOff command")
                 payload['commands'][0]['status'] = 'ERROR'
                 payload['commands'][0]['errorCode'] = 'hardError'
                 return payload
             params = {'on': params['on']}
-            print('OnOff')
+            logger.debug('OnOff')
         elif execCommand == 'action.devices.commands.BrightnessAbsolute':
             params = {'brightness': params.get('brightness', 100), 'on': True}
-            print('BrightnessAbsolute')
+            logger.debug('BrightnessAbsolute')
         elif execCommand == 'action.devices.commands.StartStop':
             params = {'isRunning': params['start']}
-            print('StartStop')
+            logger.debug('StartStop')
         elif execCommand == 'action.devices.commands.PauseUnpause':
             params = {'isPaused': params['pause']}
-            print('PauseUnpause')
+            logger.debug('PauseUnpause')
         elif execCommand == 'action.devices.commands.GetCameraStream':
-            print('GetCameraStream')
+            logger.debug('GetCameraStream')
         elif execCommand == 'action.devices.commands.LockUnlock':
             params = {'isLocked': params['lock']}
-            print('LockUnlock')
+            logger.debug('LockUnlock')
 
         # Out from elif
         states = rexecute(deviceId, params)
@@ -252,7 +255,7 @@ def commands(payload, deviceId, execCommand, params):
 
         return payload
     except Exception as e:
-        print(f"Error in commands: {e}")
+        logger.error("Error in commands: %s", e)
         payload['commands'][0]['status'] = 'ERROR'
         return payload
 
@@ -261,7 +264,7 @@ def actions(req):
     try:
         payload = {}
         for i in req['inputs']:
-            print(i['intent'])
+            logger.debug('Intent: %s', i['intent'])
             if i['intent'] == "action.devices.SYNC":
                 payload = onSync()
             elif i['intent'] == "action.devices.QUERY":
@@ -276,16 +279,16 @@ def actions(req):
                         mqtt.publish(topic=str(deviceId) + '/' + 'notification',
                                      payload=str(params), qos=0)  # SENDING MQTT MESSAGE
                 except Exception as mqtt_error:
-                    print(f"MQTT error: {mqtt_error}")
+                    logger.warning("MQTT error: %s", mqtt_error)
             elif i['intent'] == "action.devices.DISCONNECT":
-                print("\nDISCONNECT ACTION")
+                logger.debug("DISCONNECT ACTION")
                 payload = {}
             else:
-                print('Unexpected action requested: %s', json.dumps(req))
+                logger.warning('Unexpected action requested: %s', json.dumps(req))
                 payload = {}
         return payload
     except Exception as e:
-        print(f"Error in actions: {e}")
+        logger.error("Error in actions: %s", e)
         return {}
 
 
@@ -297,19 +300,19 @@ def request_sync(api_key, agent_user_id):
 
         response = requests.post(url, json=data)
 
-        print(f'\nRequests Code: {requests.codes["ok"]}\nResponse Code: {response.status_code}')
-        print(f'\nResponse: {response.text}')
+        logger.debug('Requests Code: %s  Response Code: %s', requests.codes["ok"], response.status_code)
+        logger.debug('Response: %s', response.text)
 
         return response.status_code == requests.codes['ok']
     except Exception as e:
-        print(f"Error in request_sync: {e}")
+        logger.error("Error in request_sync: %s", e)
         return False
 
 
 def report_state():
     try:
         if not REPORTSTATE_AVAILABLE:
-            print("ReportState module not available, skipping report_state")
+            logger.warning("ReportState module not available, skipping report_state")
             return "ReportState not available"
         import random
         n = random.randint(10**19, 10**20)
@@ -323,5 +326,5 @@ def report_state():
 
         return "THIS IS TEST NO RETURN"
     except Exception as e:
-        print(f"Error in report_state: {e}")
+        logger.error("Error in report_state: %s", e)
         return f"Error: {e}"

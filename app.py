@@ -1,13 +1,17 @@
 # coding: utf-8
 # Code By DaTi_Co
+import logging
 import os
 import secrets
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    print("python-dotenv not available, continuing without loading .env file")
+    pass
 
 from flask import Flask, jsonify, send_from_directory, request
 
@@ -16,7 +20,7 @@ try:
     from firebase_admin import credentials, initialize_app
     FIREBASE_AVAILABLE = True
 except ImportError:
-    print("Firebase admin not available, continuing without it")
+    logger.warning("Firebase admin not available, continuing without it")
     FIREBASE_AVAILABLE = False
 
 # Try importing other modules, but provide fallbacks
@@ -29,7 +33,7 @@ try:
     from auth import auth
     FULL_FEATURES = True
 except ImportError as e:
-    print(f"Some modules not available: {e}")
+    logger.warning("Some modules not available: %s", e)
     FULL_FEATURES = False
 
 # Flask Application Configuration
@@ -40,12 +44,12 @@ if app.config.get("ENV") == "production":
     try:
         app.config.from_object("config.ProductionConfig")
     except Exception as e:
-        print(f"Could not load ProductionConfig: {e}")
+        logger.warning("Could not load ProductionConfig: %s", e)
 else:
     try:
         app.config.from_object("config.DevelopmentConfig")
     except Exception as e:
-        print(f"Could not load DevelopmentConfig: {e}")
+        logger.warning("Could not load DevelopmentConfig: %s", e)
 
 # Apply fallback defaults AFTER from_object so config values are not overwritten.
 # Config classes set these from environment variables; if the env var is unset,
@@ -60,10 +64,10 @@ if not app.config.get('DATABASEURL'):
 # Ensure SECRET_KEY is set; generate a random one if missing (not suitable for production)
 if not app.config.get('SECRET_KEY'):
     app.config['SECRET_KEY'] = secrets.token_urlsafe(16)
-    print("WARNING: SECRET_KEY not set in environment. Using a generated key (not suitable for production).")
+    logger.warning("SECRET_KEY not set in environment. Using a generated key (not suitable for production).")
 
-print(f'ENV is set to: {app.config.get("ENV", "development")}')
-print(f'AGENT_USER_ID: {app.config.get("AGENT_USER_ID")}')
+logger.info('ENV is set to: %s', app.config.get("ENV", "development"))
+logger.info('AGENT_USER_ID: %s', app.config.get("AGENT_USER_ID"))
 
 # Register blueprints if available — initialize extensions first, then blueprints.
 # This order ensures that a failure in extension setup does not leave blueprints
@@ -83,14 +87,13 @@ if FULL_FEATURES:
         @login_manager.user_loader
         def load_user(user_id):
             """Get User ID"""
-            print(user_id)
             return User.query.get(int(user_id))
 
         # Register blueprints only after all extensions succeed
         app.register_blueprint(bp, url_prefix='')
         app.register_blueprint(auth, url_prefix='')
     except Exception as e:
-        print(f"Could not initialize full features: {e}")
+        logger.warning("Could not initialize full features: %s", e)
         FULL_FEATURES = False
 
 # Initialize Firebase if available
@@ -102,9 +105,9 @@ if FIREBASE_AVAILABLE and FULL_FEATURES:
             FIREBASE_DATABASEURL = app.config['DATABASEURL']
             FIREBASE_OPTIONS = {'databaseURL': FIREBASE_DATABASEURL}
             initialize_app(FIREBASE_CREDENTIALS, FIREBASE_OPTIONS)
-            print("Firebase initialized successfully")
+            logger.info("Firebase initialized successfully")
     except Exception as e:
-        print(f"Could not initialize Firebase: {e}")
+        logger.warning("Could not initialize Firebase: %s", e)
 
 # File Extensions for Upload Folder
 ALLOWED_EXTENSIONS = {'txt', 'py'}
@@ -169,22 +172,22 @@ if not FULL_FEATURES:
                 return {'error': str(e)}, 500
 
     except ImportError as e:
-        print(f"Could not import action_devices: {e}")
+        logger.warning("Could not import action_devices: %s", e)
 
 if FULL_FEATURES:
     try:
         @app.before_first_request
         def create_db_command():
             """Search for tables and if there is no data create new tables."""
-            print('DB Engine: ' + app.config.get('SQLALCHEMY_DATABASE_URI', 'sqlite').split(':')[0])
+            logger.info('DB Engine: %s', app.config.get('SQLALCHEMY_DATABASE_URI', 'sqlite').split(':')[0])
             db.create_all(app=app)
-            print('Initialized the database.')
+            logger.info('Initialized the database.')
     except Exception as e:
-        print(f"Could not set up database initialization: {e}")
+        logger.warning("Could not set up database initialization: %s", e)
 
 if __name__ == '__main__':
-    print("Starting Smart-Google Flask Application")
-    print(f"Full features: {FULL_FEATURES}")
+    logger.info("Starting Smart-Google Flask Application")
+    logger.info("Full features: %s", FULL_FEATURES)
 
     if FULL_FEATURES:
         try:

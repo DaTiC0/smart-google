@@ -2,9 +2,12 @@
 # Code By DaTi_Co
 # Generate service account file from ENV
 # Temporary Solution
+import logging
 from os import environ, path
 import json
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
@@ -23,14 +26,14 @@ def generate_file():
     })
 
     try:
-        print('Try to replace NewLine Exception')
+        logger.debug('Try to replace NewLine Exception')
         data['private_key'] = data['private_key'].replace('\\n', '\n')
     except AttributeError as e:
-        print('Error: %s' % e)
+        logger.warning('Error: %s', e)
     except KeyError as e:
-        print('Error: %s' % e)
+        logger.warning('Error: %s', e)
     except Exception as e:
-        print('Error: %s' % e)
-    print('Dictionary Generated')
+        logger.warning('Error: %s', e)
+    logger.debug('Dictionary Generated')
 
     return data
