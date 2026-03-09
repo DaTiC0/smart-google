@@ -17,7 +17,7 @@ def get_current_user():
     if 'id' in session:
         uid = session['id']
         user = User.query.get(uid)
-        logger.debug(f"Current user: {user}")
+        logger.debug("Current user: %s", user)
         return user
     return None
 
@@ -25,9 +25,9 @@ def get_current_user():
 @oauth.clientgetter
 def load_client(client_id):
     logger.debug("get client")
-    logger.debug(f"client_id: {client_id}")
+    logger.debug("client_id: %s", client_id)
     client = Client.query.filter_by(client_id=client_id).first()
-    logger.debug(f"Client: {client}")
+    logger.debug("Client: %s", client)
     return client
 
 
@@ -50,7 +50,7 @@ def save_grant(client_id, code, request, *args, **kwargs):
         user=get_current_user(),
         expires=expires
     )
-    logger.debug(f"Grant created: {grant}")
+    logger.debug("Grant created: %s", grant)
     db.session.add(grant)
     db.session.commit()
     return grant
@@ -72,7 +72,7 @@ def save_token(token, request, *args, **kwargs):
         client_id=request.client.client_id,
         user_id=request.user.id
     )
-    logger.debug(f"Existing tokens: {toks}")
+    logger.debug("Existing tokens: %s", toks)
     # make sure that every client has only one token connected to a user
     for t in toks:
         db.session.delete(t)
@@ -89,7 +89,7 @@ def save_token(token, request, *args, **kwargs):
         client_id=request.client.client_id,
         user_id=request.user.id,
     )
-    logger.debug(f"Token created: {tok}")
+    logger.debug("Token created: %s", tok)
     db.session.add(tok)
     db.session.commit()
     return tok
