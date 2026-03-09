@@ -52,8 +52,9 @@ def report_state(access_token, report_state_file):
 def main(report_state_file):
     service_account = current_app.config['SERVICE_ACCOUNT_DATA']
     logger.info('By ReportState')
-    # google-auth >= 2.x returns a str; no .decode() needed
-    signed_jwt = generate_jwt(service_account).decode("utf-8")  # Decode
+    # google-auth >= 2.x may return str or bytes; handle both for compatibility
+    jwt_result = generate_jwt(service_account)
+    signed_jwt = jwt_result.decode("utf-8") if isinstance(jwt_result, bytes) else jwt_result
     access_token = get_access_token(signed_jwt)
     success = report_state(access_token, report_state_file)
 

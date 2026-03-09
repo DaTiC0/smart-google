@@ -147,6 +147,10 @@ def rsync():
 
 
 def rquery(deviceId):
+    # Sanitize deviceId to prevent path traversal attacks
+    if not deviceId or '/' in deviceId or '\\' in deviceId or '..' in deviceId:
+        logger.error("Invalid deviceId: %s", deviceId)
+        return {"online": False}
     try:
         ref = reference()
         return ref.child(deviceId).child('states').get()
@@ -156,6 +160,10 @@ def rquery(deviceId):
 
 
 def rexecute(deviceId, parameters):
+    # Sanitize deviceId to prevent path traversal attacks
+    if not deviceId or '/' in deviceId or '\\' in deviceId or '..' in deviceId:
+        logger.error("Invalid deviceId: %s", deviceId)
+        return parameters
     try:
         ref = reference()
         ref.child(deviceId).child('states').update(parameters)
@@ -185,7 +193,7 @@ def onQuery(body):
         for i in body['inputs']:
             for device in i['payload']['devices']:
                 deviceId = device['id']
-                logger.debug('DEVICE ID: %s', deviceId)
+                # logger.debug('DEVICE ID: %s', deviceId)
                 data = rquery(deviceId)
                 payload['devices'][deviceId] = data
         return payload
@@ -264,7 +272,7 @@ def actions(req):
     try:
         payload = {}
         for i in req['inputs']:
-            logger.debug('Intent: %s', i['intent'])
+            # logger.debug('Intent: %s', i['intent'])
             if i['intent'] == "action.devices.SYNC":
                 payload = onSync()
             elif i['intent'] == "action.devices.QUERY":

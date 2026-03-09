@@ -111,6 +111,9 @@ def devices():
 @bp.route('/smarthome', methods=['POST'])
 def smarthome():
     req = request.get_json(silent=True, force=True)
+    if not req or 'requestId' not in req or 'inputs' not in req:
+        logger.warning("Invalid smarthome request: missing required fields")
+        return jsonify({'error': 'Invalid request format'}), 400
     logger.debug("Smart home request: %s", req.get('requestId', 'unknown'))
     result = {
         'requestId': req['requestId'],
