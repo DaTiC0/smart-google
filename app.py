@@ -38,7 +38,6 @@ try:
     from flask_login import LoginManager
     from my_oauth import oauth
     from notifications import mqtt
-    from routes import bp
     FULL_FEATURES = True
 except ImportError as e:
     logger.warning("Optional module missing: %s", e)
@@ -100,7 +99,11 @@ if FULL_FEATURES:
         mqtt.subscribe('+/status')
         db.init_app(app)
         oauth.init_app(app)
+        from routes import bp
         app.register_blueprint(bp, url_prefix='')
+    except ImportError as e:
+        logger.warning("Optional route blueprint missing: %s", e)
+        FULL_FEATURES = False
     except Exception as e:
         logger.warning("Could not initialize full features: %s", e)
         FULL_FEATURES = False
