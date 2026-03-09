@@ -193,7 +193,6 @@ def onQuery(body):
         for i in body['inputs']:
             for device in i['payload']['devices']:
                 deviceId = device['id']
-                # logger.debug('DEVICE ID: %s', deviceId)
                 data = rquery(deviceId)
                 payload['devices'][deviceId] = data
         return payload
@@ -272,7 +271,6 @@ def actions(req):
     try:
         payload = {}
         for i in req['inputs']:
-            # logger.debug('Intent: %s', i['intent'])
             if i['intent'] == "action.devices.SYNC":
                 payload = onSync()
             elif i['intent'] == "action.devices.QUERY":
@@ -301,15 +299,11 @@ def actions(req):
 
 
 def request_sync(api_key, agent_user_id):
-    """This function does blah blah."""
     try:
         url = 'https://homegraph.googleapis.com/v1/devices:requestSync?key=' + api_key
         data = {"agentUserId": agent_user_id, "async": True}
 
         response = requests.post(url, json=data)
-
-        logger.debug('Requests Code: %s  Response Code: %s', requests.codes["ok"], response.status_code)
-        logger.debug('Response: %s', response.text)
 
         return response.status_code == requests.codes['ok']
     except Exception as e:
