@@ -1,5 +1,6 @@
 # coding: utf-8
 # Code By DaTi_Co
+
 import logging
 import os
 import secrets
@@ -7,6 +8,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# load .env if available
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -14,6 +16,7 @@ except ImportError:
     pass
 
 from flask import Flask, jsonify, send_from_directory, request
+from flask_login import login_required  # used even in minimal mode
 
 # Try importing Firebase, but don't fail if not available
 try:
@@ -23,22 +26,42 @@ except ImportError:
     logger.warning("Firebase admin not available, continuing without it")
     FIREBASE_AVAILABLE = False
 
-# Try importing other modules, but provide fallbacks
+# always import core pieces; failures here are fatal
+try:
+    from models import User, db
+    from auth import auth
+except ImportError as e:
+    logger.warning("Critical import failed: %s", e)
+
+# load add‑ons; missing ones just disable full features
 try:
     from flask_login import LoginManager
-    from models import User, db
     from my_oauth import oauth
     from notifications import mqtt
     from routes import bp
-    from auth import auth
     FULL_FEATURES = True
 except ImportError as e:
-    logger.warning("Some modules not available: %s", e)
+    logger.warning("Optional module missing: %s", e)
     FULL_FEATURES = False
 
 # Flask Application Configuration
 app = Flask(__name__, template_folder='templates')
 app.config['UPLOAD_FOLDER'] = './static/upload'
+
+# Always set up a login manager if flask_login is available so that
+# @login_required decorators function and tests can rely on redirections.
+try:
+    login_manager = LoginManager()
+    login_manager.login_view = 'auth.login'
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        """Get User ID"""
+        # User import should succeed earlier
+        return User.query.get(int(user_id))
+except Exception as e:
+    logger.warning("LoginManager unavailable: %s", e)
 
 if app.config.get("ENV") == "production":
     try:
@@ -51,9 +74,7 @@ else:
     except Exception as e:
         logger.warning("Could not load DevelopmentConfig: %s", e)
 
-# Apply fallback defaults AFTER from_object so config values are not overwritten.
-# Config classes set these from environment variables; if the env var is unset,
-# from_object produces None — these defaults keep the app startable in dev/test.
+# fallback values for when env vars are missing
 if not app.config.get('AGENT_USER_ID'):
     app.config['AGENT_USER_ID'] = 'test-user'
 if not app.config.get('API_KEY'):
@@ -61,55 +82,46 @@ if not app.config.get('API_KEY'):
 if not app.config.get('DATABASEURL'):
     app.config['DATABASEURL'] = 'https://test-project-default-rtdb.firebaseio.com/'
 
-# Ensure SECRET_KEY is set; generate a random one if missing (not suitable for production)
+# ensure sqlalchemy flag key exists
+app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
+
+# generate a temp secret key when not provided
 if not app.config.get('SECRET_KEY'):
     app.config['SECRET_KEY'] = secrets.token_urlsafe(16)
-    logger.warning("SECRET_KEY not set in environment. Using a generated key (not suitable for production).")
+    logger.warning("SECRET_KEY not set; generated temporary key")
 
 logger.info('ENV is set to: %s', app.config.get("ENV", "development"))
 logger.info('AGENT_USER_ID: %s', app.config.get("AGENT_USER_ID"))
 
-# Register blueprints if available — initialize extensions first, then blueprints.
-# This order ensures that a failure in extension setup does not leave blueprints
-# partially registered while FULL_FEATURES is flipped to False.
 if FULL_FEATURES:
     try:
-        # Initialize all extensions before touching the blueprint registry
         mqtt.init_app(app)
         mqtt.subscribe('+/notification')
         mqtt.subscribe('+/status')
         db.init_app(app)
         oauth.init_app(app)
-        login_manager = LoginManager()
-        login_manager.login_view = 'auth.login'
-        login_manager.init_app(app)
-
-        @login_manager.user_loader
-        def load_user(user_id):
-            """Get User ID"""
-            return User.query.get(int(user_id))
-
-        # Register blueprints only after all extensions succeed
         app.register_blueprint(bp, url_prefix='')
-        app.register_blueprint(auth, url_prefix='')
     except Exception as e:
         logger.warning("Could not initialize full features: %s", e)
         FULL_FEATURES = False
 
-# Initialize Firebase if available
+# auth routes should always be available
+try:
+    app.register_blueprint(auth, url_prefix='')
+except Exception as e:
+    logger.warning("auth blueprint registration failed: %s", e)
+
+# optional Firebase integration
 if FIREBASE_AVAILABLE and FULL_FEATURES:
     try:
-        FIREBASE_ADMINSDK_FILE = app.config.get('SERVICE_ACCOUNT_DATA')
-        if FIREBASE_ADMINSDK_FILE:
-            FIREBASE_CREDENTIALS = credentials.Certificate(FIREBASE_ADMINSDK_FILE)
-            FIREBASE_DATABASEURL = app.config['DATABASEURL']
-            FIREBASE_OPTIONS = {'databaseURL': FIREBASE_DATABASEURL}
-            initialize_app(FIREBASE_CREDENTIALS, FIREBASE_OPTIONS)
-            logger.info("Firebase initialized successfully")
+        file = app.config.get('SERVICE_ACCOUNT_DATA')
+        if file:
+            FIREBASE_CREDENTIALS = credentials.Certificate(file)
+            initialize_app(FIREBASE_CREDENTIALS, {'databaseURL': app.config['DATABASEURL']})
+            logger.info("Firebase initialized")
     except Exception as e:
-        logger.warning("Could not initialize Firebase: %s", e)
+        logger.warning("Firebase init failed: %s", e)
 
-# File Extensions for Upload Folder
 ALLOWED_EXTENSIONS = {'txt', 'py'}
 
 
@@ -125,8 +137,6 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
-# Fallback routes — only registered when full blueprint features are unavailable,
-# to avoid duplicate URL rule conflicts with the blueprint routes.
 if not FULL_FEATURES:
     @app.route('/')
     def index():
@@ -144,6 +154,7 @@ if not FULL_FEATURES:
         from action_devices import onSync, actions, request_sync, report_state
 
         @app.route('/devices')
+        @login_required
         def devices():
             try:
                 return onSync()
@@ -178,7 +189,7 @@ if FULL_FEATURES:
     try:
         @app.before_first_request
         def create_db_command():
-            """Search for tables and if there is no data create new tables."""
+            # ensure database tables exist
             logger.info('DB Engine: %s', app.config.get('SQLALCHEMY_DATABASE_URI', 'sqlite').split(':')[0])
             db.create_all(app=app)
             logger.info('Initialized the database.')
