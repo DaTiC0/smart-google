@@ -96,6 +96,15 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def init_database_schema(flask_app: Flask) -> None:
+    """Create DB tables if they do not exist."""
+    db_uri = flask_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    logger.info('DB Engine: %s', db_uri.split(':')[0] if db_uri else 'unknown')
+    with flask_app.app_context():
+        db.create_all()
+    logger.info('Initialized the database.')
+
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     """File formats for upload folder"""
@@ -103,16 +112,12 @@ def uploaded_file(filename):
                                filename)
 
 
-@app.before_first_request
-def create_db_command():
-    """Search for tables and if there is no data create new tables."""
-    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
-    logger.info('DB Engine: %s', db_uri.split(':')[0] if db_uri else 'unknown')
-    db.create_all(app=app)
-    logger.info('Initialized the database.')
+@app.cli.command('init-db')
+def create_db_command() -> None:
+    """Initialize database tables."""
+    init_database_schema(app)
 
 
 if __name__ == '__main__':
-    os.environ['DEBUG'] = 'True'  # While in development
-    db.create_all(app=app)
+    init_database_schema(app)
     app.run(debug=app.config.get('DEBUG', False))
