@@ -1,11 +1,14 @@
 # coding: utf-8
 # Code By DaTi_Co
 # OAuth2
-from datetime import datetime, timedelta
+import logging
+from datetime import datetime, timedelta, timezone
 from flask_oauthlib.provider import OAuth2Provider
 from flask import session
 from models import db
 from models import Client, Token, Grant, User
+
+logger = logging.getLogger(__name__)
 
 oauth = OAuth2Provider()
 
@@ -13,30 +16,32 @@ oauth = OAuth2Provider()
 def get_current_user():
     if 'id' in session:
         uid = session['id']
-        print(User.query.get(uid))
-        return User.query.get(uid)
+        user = User.query.get(uid)
+        logger.debug("Current user: %s", user)
+        return user
     return None
 
 
 @oauth.clientgetter
 def load_client(client_id):
-    print("get client")
-    print(client_id)
-    print(Client.query.filter_by(client_id=client_id).first())
-    return Client.query.filter_by(client_id=client_id).first()
+    logger.debug("get client")
+    logger.debug("client_id: %s", client_id)
+    client = Client.query.filter_by(client_id=client_id).first()
+    logger.debug("Client: %s", client)
+    return client
 
 
 @oauth.grantgetter
 def load_grant(client_id, code):
-    print("grant getter")
+    logger.debug("grant getter")
     return Grant.query.filter_by(client_id=client_id, code=code).first()
 
 
 @oauth.grantsetter
 def save_grant(client_id, code, request, *args, **kwargs):
     # decide the expires time yourself
-    print("save grant")
-    expires = datetime.utcnow() + timedelta(seconds=100)
+    logger.debug("save grant")
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=100)
     grant = Grant(
         client_id=client_id,
         code=code['code'],
@@ -45,7 +50,7 @@ def save_grant(client_id, code, request, *args, **kwargs):
         user=get_current_user(),
         expires=expires
     )
-    print(grant)
+    logger.debug("Grant created: %s", grant)
     db.session.add(grant)
     db.session.commit()
     return grant
@@ -53,7 +58,7 @@ def save_grant(client_id, code, request, *args, **kwargs):
 
 @oauth.tokengetter
 def load_token(access_token=None, refresh_token=None):
-    print("token getter")
+    logger.debug("token getter")
     if access_token:
         return Token.query.filter_by(access_token=access_token).first()
     if refresh_token:
@@ -62,18 +67,18 @@ def load_token(access_token=None, refresh_token=None):
 
 @oauth.tokensetter
 def save_token(token, request, *args, **kwargs):
-    print("token setter")
+    logger.debug("token setter")
     toks = Token.query.filter_by(
         client_id=request.client.client_id,
         user_id=request.user.id
     )
-    print(toks)
+    logger.debug("Existing tokens: %s", toks)
     # make sure that every client has only one token connected to a user
     for t in toks:
         db.session.delete(t)
 
     expires_in = token.pop('expires_in')
-    expires = datetime.utcnow() + timedelta(seconds=expires_in)
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=expires_in)
 
     tok = Token(
         access_token=token['access_token'],
@@ -84,7 +89,7 @@ def save_token(token, request, *args, **kwargs):
         client_id=request.client.client_id,
         user_id=request.user.id,
     )
-    print(tok)
+    logger.debug("Token created: %s", tok)
     db.session.add(tok)
     db.session.commit()
     return tok

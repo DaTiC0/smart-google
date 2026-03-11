@@ -1,12 +1,15 @@
 # coding: utf-8
 # Code By DaTi_Co
 
+import logging
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response
 from flask_login import login_required, current_user
 from action_devices import onSync, report_state, request_sync, actions
 from models import Client
 from my_oauth import get_current_user, oauth
 from notifications import is_mqtt_connected
+
+logger = logging.getLogger(__name__)
 
 
 bp = Blueprint('routes', __name__)
@@ -98,16 +101,23 @@ def ifttt():
 @bp.route('/devices')
 @login_required
 def devices():
+    logger.debug("Retrieving devices for user: %s", current_user)
     dev_req = onSync()
     device_list = dev_req['devices']
+    logger.debug("Device list: %s", device_list)
     return render_template('devices.html', title='Smart-Home', devices=device_list)
 
 
 @bp.route('/smarthome', methods=['POST'])
 def smarthome():
     req = request.get_json(silent=True, force=True)
+    if not req or 'requestId' not in req or 'inputs' not in req:
+        logger.warning("Invalid smarthome request: missing required fields")
+        return jsonify({'error': 'Invalid request format'}), 400
+    logger.debug("Smart home request: %s", req.get('requestId', 'unknown'))
     result = {
         'requestId': req['requestId'],
         'payload': actions(req),
     }
+    logger.debug("Smart home response: %s", result)
     return make_response(jsonify(result))
