@@ -317,7 +317,7 @@ def report_state():
             logger.warning("ReportState module not available, skipping report_state")
             return "ReportState not available"
         import secrets
-        n = 10**19 + secrets.randbelow(10**20 - 10**19 + 1)
+        n = 10**19 + secrets.randbelow(9 * 10**19 + 1)
         report_state_file = {
             'requestId': str(n),
             'agentUserId': current_app.config['AGENT_USER_ID'],
