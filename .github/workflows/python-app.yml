@@ -3,6 +3,9 @@
 
 name: Python application
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ main ]
