@@ -1,6 +1,6 @@
 gunicorn==25.1.0
 Flask>=2.0.3,<3.0.0
-Flask-MQTT==1.1.1
+Flask-MQTT==1.3.0
 Flask-OAuthlib==0.9.6
 Flask-SQLAlchemy>=3.0.0,<4.0.0
 SQLAlchemy>=1.4.18,<3.0.0
