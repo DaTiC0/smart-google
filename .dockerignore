@@ -1,0 +1,20 @@
+Dockerfile
+README.md
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+.pytest_cache
+
+# Other files
+.deepsourcel.toml
+.env
+.env.example
+.gitignore
+Procfile
+runtime.txt
+# other folders
+.git
+.github
+.venv
+.vscode
