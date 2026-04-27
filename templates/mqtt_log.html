@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dash-container">
+    <!-- Header Section -->
+    <section class="summary-box span-full">
+        <div class="dash-header-inline">
+            <div>
+                <h1>MQTT Monitor</h1>
+                <p>Real-time system communication and device telemetry log.</p>
+            </div>
+            <div class="status-pill status-pill--active">Live Feed</div>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-wifi"></use></svg>
+                <div>
+                    <span class="stat-item__value">Connected</span>
+                    <span class="stat-item__label">Broker Status</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-shield"></use></svg>
+                <div>
+                    <span class="stat-item__value">Encrypted</span>
+                    <span class="stat-item__label">Security</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Message Log Table -->
+    <section style="grid-column: span 3;">
+        <div class="premium-table-container">
+            <table class="premium-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Topic</th>
+                        <th>Payload</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="mqtt-log-body">
+                    <!-- Sample technical entries to show design -->
+                    <tr>
+                        <td>17:25:01</td>
+                        <td><code>living_room/light/status</code></td>
+                        <td><code>{"on": true, "bri": 80}</code></td>
+                        <td><span class="status-pill status-pill--active" style="font-size: 0.7rem;">Received</span></td>
+                    </tr>
+                    <tr>
+                        <td>17:24:55</td>
+                        <td><code>kitchen/ac/notification</code></td>
+                        <td><code>{"temp": 22, "mode": "cool"}</code></td>
+                        <td><span class="status-pill status-pill--active" style="font-size: 0.7rem;">Received</span></td>
+                    </tr>
+                    <tr>
+                        <td>17:24:40</td>
+                        <td><code>bedroom/lock/status</code></td>
+                        <td><code>{"locked": true}</code></td>
+                        <td><span class="status-pill status-pill--active" style="font-size: 0.7rem;">Received</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="flex-row u-margin-top-2">
+            <button class="md-button" style="width: auto; padding: 0.75rem 2rem; background: var(--bg-widget);" onclick="location.reload()">Refresh Log</button>
+            <a href="{{ url_for('routes.index') }}" class="md-button" style="width: auto; padding: 0.75rem 2rem; background: transparent; border: 1px solid var(--border);">Back to Dashboard</a>
+        </div>
+    </section>
+</div>
+
+<style>
+    code {
+        background: rgba(255,255,255,0.05);
+        padding: 0.2rem 0.4rem;
+        border-radius: 6px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        color: var(--accent-secondary);
+    }
+</style>
+{% endblock %}

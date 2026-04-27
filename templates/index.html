@@ -1,10 +1,143 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="title">
-  This is Main Page
-</h1>
-<h2 class="subtitle">
-  authentication and authorization.
-</h2>
+{% if current_user.is_authenticated %}
+<div class="dash-container">
+    <!-- Top Left: Welcome & Summary -->
+    <section class="summary-box">
+        <h1>Hello, {{ current_user.name if current_user.name else 'User' }}!</h1>
+        <p>Welcome home! Everything is under control.</p>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-weather"></use></svg>
+                <div>
+                    <span class="stat-item__value">15°</span>
+                    <span class="stat-item__label">Weather</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-humidity"></use></svg>
+                <div>
+                    <span class="stat-item__value">45%</span>
+                    <span class="stat-item__label">Humidity</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-temp"></use></svg>
+                <div>
+                    <span class="stat-item__value">22°</span>
+                    <span class="stat-item__label">Indoor</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Left: Category Grid -->
+    <section class="category-grid">
+        <a href="{{ url_for('routes.devices') }}?filter=lights" class="category-card category-card--active">
+            <svg class="category-card__icon"><use xlink:href="#icon-light"></use></svg>
+            <span>Lights</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=heating" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-heating"></use></svg>
+            <span>Heating</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=ac" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-ac"></use></svg>
+            <span>AC</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=cameras" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-camera"></use></svg>
+            <span>Cameras</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=doors" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-door"></use></svg>
+            <span>Doors</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=alarm" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-alarm"></use></svg>
+            <span>Alarm</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=garage" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-garage"></use></svg>
+            <span>Garage</span>
+        </a>
+        <a href="{{ url_for('routes.devices') }}?filter=garden" class="category-card">
+            <svg class="category-card__icon"><use xlink:href="#icon-garden"></use></svg>
+            <span>Garden</span>
+        </a>
+    </section>
+
+    <!-- Middle Column: Gauges -->
+    <aside class="gadgets-column">
+        <div class="premium-card">
+            <h3 class="text-center">Temperature</h3>
+            <div class="gauge-container">
+                <svg class="gauge-svg" viewBox="0 0 100 100">
+                    <circle class="gauge-bg" cx="50" cy="50" r="45"/>
+                    <circle class="gauge-bar" cx="50" cy="50" r="45" style="stroke-dasharray: 212, 283;"/>
+                </svg>
+                <div class="gauge-value">
+                    <span class="big">22°</span>
+                    <span class="small">Celsius</span>
+                </div>
+            </div>
+            <p class="text-center u-font-size-sm">Target: 24° in 20 min</p>
+        </div>
+
+        <div class="premium-card">
+            <h3 class="text-center">Power Usage</h3>
+            <div class="gauge-container">
+                <svg class="gauge-svg" viewBox="0 0 100 100">
+                    <circle class="gauge-bg" cx="50" cy="50" r="45"/>
+                    <circle class="gauge-bar" cx="50" cy="50" r="45" style="stroke: #ec4899; stroke-dasharray: 180, 283;"/>
+                </svg>
+                <div class="gauge-value">
+                    <span class="big">135</span>
+                    <span class="small">Kwh</span>
+                </div>
+            </div>
+            <p class="text-center u-font-size-sm">Saving 18% this month</p>
+        </div>
+    </aside>
+
+    <!-- Right Side: Controls -->
+    <aside class="side-column">
+        <div class="side-widget">
+            <div class="side-widget__header">
+                <span class="side-widget__title">Lighting</span>
+                <div class="toggle-switch toggle-switch--on"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+            <div class="flex-column items-center">
+                <svg class="u-icon-hero color-light"><use xlink:href="#icon-bulb"></use></svg>
+                <span class="font-bold">Main Studio</span>
+            </div>
+        </div>
+
+        <div class="side-widget">
+            <div class="side-widget__header">
+                <span class="side-widget__title">Security</span>
+                <div class="toggle-switch"></div>
+            </div>
+            <div class="flex-column items-center">
+                <svg class="u-icon-hero color-door"><use xlink:href="#icon-shield"></use></svg>
+                <span class="font-bold">Front Door</span>
+            </div>
+        </div>
+    </aside>
+</div>
+{% else %}
+<section class="auth-wrap">
+  <article class="auth-card">
+    <h1 class="text-large u-margin-bottom-1">Smart Home Hub</h1>
+    <p class="u-opacity-8 u-margin-bottom-2">Premium orchestration for your modern home.</p>
+    <div style="display: grid; gap: 1rem;">
+      <a class="md-button" href="{{ url_for('auth.login') }}">Enter Dashboard</a>
+      <a href="{{ url_for('auth.signup') }}" style="color: var(--text-secondary); font-size: 0.9rem;">Don't have an account? Sign up</a>
+    </div>
+  </article>
+</section>
+{% endif %}
 {% endblock %}

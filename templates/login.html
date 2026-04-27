@@ -1,36 +1,42 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="column is-4 is-offset-4">
-    <h3 class="title">Login</h3>
-    <div class="box">
-    {% with massage = get_flashed_messages() %}
-    {% if messages %}
-        <div class="notification is-danger">
-            {{ messages[0] }}
-        </div>
-    {% endif %}
-    {% endwith %}
-        <form method="POST" action="/login">
-            <div class="field">
-                <div class="control">
-                    <input class="input is-large" type="email" name="email" placeholder="Your Email" autofocus="">
-                </div>
+<section class="auth-wrap">
+    <article class="auth-card">
+        <h1 class="text-center u-margin-bottom-2">Welcome Back</h1>
+        
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="card-alert" role="alert">
+                {{ messages[0] }}
+            </div>
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
+            <div class="md-field">
+                <label class="md-label" for="login-email">Email Address</label>
+                <input id="login-email" class="md-input" type="email" name="email" placeholder="name@example.com" autofocus="" required>
             </div>
 
-            <div class="field">
-                <div class="control">
-                    <input class="input is-large" type="password" name="password" placeholder="Your Password">
-                </div>
+            <div class="md-field">
+                <label class="md-label" for="login-password">Password</label>
+                <input id="login-password" class="md-input" type="password" name="password" placeholder="••••••••" required>
             </div>
-            <div class="field">
-                <label class="checkbox">
-                    <input type="checkbox" name="remember">
-                    Remember me
+
+            <div class="md-checkbox-row">
+                <label class="md-checkbox-label">
+                    <input type="checkbox" name="remember" class="accent-checkbox">
+                    Stay logged in
                 </label>
             </div>
-            <button class="button is-block is-info is-large is-fullwidth">Login</button>
+
+            <button class="md-button u-margin-top-1" type="submit">Login to Dashboard</button>
+            
+            <div class="text-center u-margin-top-1">
+                <a href="{{ url_for('auth.signup') }}" class="u-opacity-6">Don't have an account? <span class="accent-text">Sign up</span></a>
+            </div>
         </form>
-    </div>
-</div>
+    </article>
+</section>
 {% endblock %}

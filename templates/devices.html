@@ -1,30 +1,69 @@
-<html>
-    <head>
-        {% if title %}
-        <title>{{ title }} - List</title>
-        {% else %}
-        <title>Welcome to Devices</title>
-        {% endif %}
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <h1>Hi, David!</h1>
-        <table border = "1">
-            <caption>Device List</caption>
-            <tr>
-              <th>Name</th>
-              <th>ID</th>
-              <th>Type</th>
-              <th>Status</th>
-            </tr>         
-        {% for device in devices %}
-        <tr>
-            <td>{{ device.name.name }}</td>
-            <td>{{ device.id }}</td>
-            <td>{{ device.type }}</td>
-            <td>Unknown</td>
-          </tr>
-        {% endfor %}
-    </table>
-    </body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dash-container">
+    <!-- Header Section -->
+    <section class="summary-box" style="grid-column: span 3;">
+        <h1>Device Management</h1>
+        <p>Monitor and orchestrate all your connected smart devices in real-time.</p>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-devices"></use></svg>
+                <div>
+                    <span class="stat-item__value">{{ devices|length if devices else 0 }}</span>
+                    <span class="stat-item__label">Total Devices</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <svg class="stat-item__icon accent-text"><use xlink:href="#icon-shield"></use></svg>
+                <div>
+                    <span class="stat-item__value">Secure</span>
+                    <span class="stat-item__label">System Status</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Table Section -->
+    <section style="grid-column: span 3;">
+        <div class="premium-table-container">
+            <table class="premium-table">
+                <thead>
+                    <tr>
+                        <th>Device Name</th>
+                        <th>Device ID</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% if devices and devices|length > 0 %}
+                    {% for device in devices %}
+                    <tr>
+                        <td class="accent-text">
+                            <svg class="device-type-icon"><use xlink:href="#icon-{{ device.type if device.type in ['light', 'heating', 'ac', 'camera', 'door', 'alarm', 'garage', 'garden'] else 'devices' }}"></use></svg>
+                            {{ device.name.name }}
+                        </td>
+                        <td class="u-opacity-6" style="font-family: monospace; font-size: 0.85rem;">{{ device.id }}</td>
+                        <td class="text-capitalize">{{ device.type }}</td>
+                        <td>
+                            <span class="status-pill status-pill--active">Online</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center" style="padding: 5rem;">
+                            <svg class="u-opacity-6" style="width: 80px; height: 80px; margin-bottom: 1.5rem;"><use xlink:href="#icon-home"></use></svg>
+                            <h3 class="u-margin-bottom-1">No devices found</h3>
+                            <p class="u-opacity-6">Connect your smart devices to start controlling your home.</p>
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
