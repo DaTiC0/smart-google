@@ -47,10 +47,10 @@
                 </div>
             </div>
 
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; padding-top: 2rem; border-top: 1px solid var(--border);">
-                <a class="md-button" href="{{ url_for('routes.index') }}" style="width: auto; padding: 0.75rem 2rem; background: var(--bg-widget);">Back to Dashboard</a>
-                <a class="md-button" href="{{ url_for('routes.devices') }}" style="width: auto; padding: 0.75rem 2rem;">Manage Devices</a>
-                <a class="md-button" href="{{ url_for('auth.logout') }}" style="width: auto; padding: 0.75rem 2rem; background: #ef4444; margin-left: auto;">Sign Out</a>
+            <div class="flex-row flex-wrap u-margin-top-1" style="padding-top: 2rem; border-top: 1px solid var(--border);">
+                <a class="md-button u-width-auto u-ghost-button" href="{{ url_for('routes.index') }}">Back to Dashboard</a>
+                <a class="md-button u-width-auto" href="{{ url_for('routes.devices') }}">Manage Devices</a>
+                <a class="md-button u-width-auto u-danger-button" href="{{ url_for('auth.logout') }}" style="margin-left: auto;">Sign Out</a>
             </div>
         </div>
     </section>

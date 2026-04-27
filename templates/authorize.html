@@ -2,30 +2,30 @@
 
 {% block content %}
 <section class="auth-wrap">
-  <article class="auth-card" style="text-align: center;">
-    <div style="margin-bottom: 2rem;">
-        <div style="width: 80px; height: 80px; background: rgba(139, 92, 246, 0.1); color: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2.5rem;">
-            <svg style="width: 40px; height: 40px;"><use xlink:href="#icon-shield"></use></svg>
+  <article class="auth-card text-center">
+    <div class="u-margin-bottom-2">
+        <div class="auth-icon-wrap">
+            <svg class="auth-icon"><use xlink:href="#icon-shield"></use></svg>
         </div>
-        <h1 style="margin-bottom: 0.5rem;">Third-Party Access</h1>
-        <p style="color: var(--text-secondary);">An application is requesting access to your Smart Home.</p>
+        <h1 class="u-margin-bottom-1">Third-Party Access</h1>
+        <p class="u-opacity-6">An application is requesting access to your Smart Home.</p>
     </div>
 
-    <div style="background: var(--bg-widget); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; text-align: left; border: 1px solid var(--border);">
-        <div style="display: grid; gap: 1rem;">
+    <div class="auth-client-info u-margin-bottom-2">
+        <div class="flex-column">
             <div>
-                <span class="md-label" style="font-size: 0.7rem;">Requesting Client</span>
-                <p style="font-weight: 700; margin-top: 0.25rem; color: var(--accent);">{{ client.client_id }}</p>
+                <span class="md-label">Requesting Client</span>
+                <p class="accent-text u-margin-top-1">{{ client.client_id }}</p>
             </div>
             <div>
-                <span class="md-label" style="font-size: 0.7rem;">Authenticated User</span>
-                <p style="font-weight: 700; margin-top: 0.25rem;">{{ user.username }}</p>
+                <span class="md-label">Authenticated User</span>
+                <p class="u-margin-top-1">{{ user.username }}</p>
             </div>
         </div>
     </div>
 
     <form action="{{ url_for('routes.authorize') }}" method="post" class="auth-form">
-      <p style="font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary);">Allow this application to control your devices?</p>
+      <p class="u-margin-bottom-2">Allow this application to control your devices?</p>
       
       <input type="hidden" name="client_id" value="{{ client.client_id }}">
       <input type="hidden" name="scope" value="{{ scopes|join(' ') }}">
@@ -34,7 +34,7 @@
       <input type="hidden" name="state" value="{{ state }}">
       {% endif %}
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="grid-2">
         <button class="md-button" type="submit" name="confirm" value="yes">Authorize Access</button>
         <button class="md-button" type="submit" name="confirm" value="no" style="background: var(--bg-widget); color: var(--text-secondary);">Deny</button>
       </div>

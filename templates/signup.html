@@ -3,12 +3,12 @@
 {% block content %}
 <section class="auth-wrap">
     <article class="auth-card">
-        <h1 style="text-align: center; margin-bottom: 2.5rem;">Create Account</h1>
+        <h1 class="text-center u-margin-bottom-2">Create Account</h1>
         
         {% with messages = get_flashed_messages() %}
         {% if messages %}
-            <div class="card-alert" role="alert" style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2);">
-                {{ messages[0] }}. <a href="{{ url_for('auth.login') }}" style="color: #34d399; font-weight: 700; text-decoration: underline;">Login now</a>.
+            <div class="card-alert card-alert--success" role="alert">
+                {{ messages[0] }}. <a href="{{ url_for('auth.login') }}" class="accent-text" style="text-decoration: underline;">Login now</a>.
             </div>
         {% endif %}
         {% endwith %}
@@ -29,10 +29,10 @@
                 <input id="signup-password" class="md-input" type="password" name="password" placeholder="Create a strong password" required>
             </div>
 
-            <button class="md-button" type="submit" style="margin-top: 1rem;">Create My Account</button>
+            <button class="md-button u-margin-top-1" type="submit">Create My Account</button>
             
-            <div style="text-align: center; margin-top: 1.5rem;">
-                <a href="{{ url_for('auth.login') }}" style="color: var(--text-secondary); font-size: 0.9rem;">Already have an account? <span style="color: var(--accent); font-weight: 700;">Login</span></a>
+            <div class="text-center u-margin-top-1">
+                <a href="{{ url_for('auth.login') }}" class="u-opacity-6">Already have an account? <span class="accent-text">Login</span></a>
             </div>
         </form>
     </article>

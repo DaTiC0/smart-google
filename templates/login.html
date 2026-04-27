@@ -3,7 +3,7 @@
 {% block content %}
 <section class="auth-wrap">
     <article class="auth-card">
-        <h1 style="text-align: center; margin-bottom: 2.5rem;">Welcome Back</h1>
+        <h1 class="text-center u-margin-bottom-2">Welcome Back</h1>
         
         {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -26,15 +26,15 @@
 
             <div class="md-checkbox-row">
                 <label class="md-checkbox-label">
-                    <input type="checkbox" name="remember" style="accent-color: var(--accent);">
+                    <input type="checkbox" name="remember" class="accent-checkbox">
                     Stay logged in
                 </label>
             </div>
 
-            <button class="md-button" type="submit" style="margin-top: 1rem;">Login to Dashboard</button>
+            <button class="md-button u-margin-top-1" type="submit">Login to Dashboard</button>
             
-            <div style="text-align: center; margin-top: 1.5rem;">
-                <a href="{{ url_for('auth.signup') }}" style="color: var(--text-secondary); font-size: 0.9rem;">Don't have an account? <span style="color: var(--accent); font-weight: 700;">Sign up</span></a>
+            <div class="text-center u-margin-top-1">
+                <a href="{{ url_for('auth.signup') }}" class="u-opacity-6">Don't have an account? <span class="accent-text">Sign up</span></a>
             </div>
         </form>
     </article>

@@ -68,15 +68,42 @@
     (function(){
         const btn = document.getElementById('theme-toggle');
         const html = document.documentElement;
-        const update = (theme)=>{
-            html.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            btn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+
+        const safeGetStoredTheme = () => {
+            try {
+                return window.localStorage.getItem('theme');
+            } catch (_) {
+                return null;
+            }
         };
-        const saved = localStorage.getItem('theme');
+
+        const safeSetStoredTheme = (theme) => {
+            try {
+                window.localStorage.setItem('theme', theme);
+            } catch (_) {
+                // ignore storage failures; theme will still be applied for this session
+            }
+        };
+
+        const update = (theme) => {
+            if (!theme) return;
+            html.setAttribute('data-theme', theme);
+            safeSetStoredTheme(theme);
+            if (btn) {
+                btn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+            }
+        };
+
+        const saved = safeGetStoredTheme();
         const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        update(saved||prefers);
-        btn && btn.addEventListener('click',()=>{
+
+        update(saved || prefers);
+
+        if (!btn) {
+            return;
+        }
+
+        btn.addEventListener('click', () => {
             const current = html.getAttribute('data-theme');
             update(current === 'dark' ? 'light' : 'dark');
         });

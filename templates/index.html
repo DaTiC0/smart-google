@@ -72,7 +72,7 @@
     <!-- Middle Column: Gauges -->
     <aside class="gadgets-column">
         <div class="premium-card">
-            <h3 style="text-align:center;">Temperature</h3>
+            <h3 class="text-center">Temperature</h3>
             <div class="gauge-container">
                 <svg class="gauge-svg" viewBox="0 0 100 100">
                     <circle class="gauge-bg" cx="50" cy="50" r="45"/>
@@ -83,11 +83,11 @@
                     <span class="small">Celsius</span>
                 </div>
             </div>
-            <p style="text-align: center; font-size: 0.8rem; margin:0;">Target: 24° in 20 min</p>
+            <p class="text-center u-font-size-sm">Target: 24° in 20 min</p>
         </div>
 
         <div class="premium-card">
-            <h3 style="text-align:center;">Power Usage</h3>
+            <h3 class="text-center">Power Usage</h3>
             <div class="gauge-container">
                 <svg class="gauge-svg" viewBox="0 0 100 100">
                     <circle class="gauge-bg" cx="50" cy="50" r="45"/>
@@ -98,7 +98,7 @@
                     <span class="small">Kwh</span>
                 </div>
             </div>
-            <p style="text-align: center; font-size: 0.8rem; margin:0;">Saving 18% this month</p>
+            <p class="text-center u-font-size-sm">Saving 18% this month</p>
         </div>
     </aside>
 
@@ -110,8 +110,9 @@
                 <div class="toggle-switch toggle-switch--on"></div>
             </div>
             <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                <svg style="width: 60px; height: 60px; color: var(--color-light);"><use xlink:href="#icon-bulb"></use></svg>
-                <span style="font-weight: 600;">Main Studio</span>
+            <div class="flex-column items-center">
+                <svg class="u-icon-hero color-light"><use xlink:href="#icon-bulb"></use></svg>
+                <span class="font-bold">Main Studio</span>
             </div>
         </div>
 
@@ -120,9 +121,9 @@
                 <span class="side-widget__title">Security</span>
                 <div class="toggle-switch"></div>
             </div>
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                <svg style="width: 60px; height: 60px; color: var(--color-door);"><use xlink:href="#icon-shield"></use></svg>
-                <span style="font-weight: 600;">Front Door</span>
+            <div class="flex-column items-center">
+                <svg class="u-icon-hero color-door"><use xlink:href="#icon-shield"></use></svg>
+                <span class="font-bold">Front Door</span>
             </div>
         </div>
     </aside>
@@ -130,8 +131,8 @@
 {% else %}
 <section class="auth-wrap">
   <article class="auth-card">
-    <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Smart Home Hub</h1>
-    <p style="margin-bottom: 2rem; opacity: 0.8;">Premium orchestration for your modern home.</p>
+    <h1 class="text-large u-margin-bottom-1">Smart Home Hub</h1>
+    <p class="u-opacity-8 u-margin-bottom-2">Premium orchestration for your modern home.</p>
     <div style="display: grid; gap: 1rem;">
       <a class="md-button" href="{{ url_for('auth.login') }}">Enter Dashboard</a>
       <a href="{{ url_for('auth.signup') }}" style="color: var(--text-secondary); font-size: 0.9rem;">Don't have an account? Sign up</a>

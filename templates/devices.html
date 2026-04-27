@@ -16,7 +16,7 @@
                 </div>
             </div>
             <div class="stat-item">
-                <svg class="stat-item__icon" style="color: #4ade80;"><use xlink:href="#icon-shield"></use></svg>
+                <svg class="stat-item__icon accent-text"><use xlink:href="#icon-shield"></use></svg>
                 <div>
                     <span class="stat-item__value">Secure</span>
                     <span class="stat-item__label">System Status</span>
@@ -41,12 +41,12 @@
                 {% if devices and devices|length > 0 %}
                     {% for device in devices %}
                     <tr>
-                        <td style="font-weight: 700;">
+                        <td class="accent-text">
                             <svg class="device-type-icon"><use xlink:href="#icon-{{ device.type if device.type in ['light', 'heating', 'ac', 'camera', 'door', 'alarm', 'garage', 'garden'] else 'devices' }}"></use></svg>
                             {{ device.name.name }}
                         </td>
-                        <td style="font-family: monospace; font-size: 0.85rem; color: var(--text-secondary);">{{ device.id }}</td>
-                        <td style="text-transform: capitalize;">{{ device.type }}</td>
+                        <td class="u-opacity-6" style="font-family: monospace; font-size: 0.85rem;">{{ device.id }}</td>
+                        <td class="text-capitalize">{{ device.type }}</td>
                         <td>
                             <span class="status-pill status-pill--active">Online</span>
                         </td>
@@ -54,10 +54,10 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="4" style="text-align: center; padding: 5rem;">
-                            <svg style="width: 80px; height: 80px; margin-bottom: 1.5rem; opacity: 0.2;"><use xlink:href="#icon-home"></use></svg>
-                            <h3 style="margin-bottom: 0.5rem;">No devices found</h3>
-                            <p style="opacity: 0.6;">Connect your smart devices to start controlling your home.</p>
+                        <td colspan="4" class="text-center" style="padding: 5rem;">
+                            <svg class="u-opacity-6" style="width: 80px; height: 80px; margin-bottom: 1.5rem;"><use xlink:href="#icon-home"></use></svg>
+                            <h3 class="u-margin-bottom-1">No devices found</h3>
+                            <p class="u-opacity-6">Connect your smart devices to start controlling your home.</p>
                         </td>
                     </tr>
                 {% endif %}

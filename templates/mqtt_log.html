@@ -3,8 +3,8 @@
 {% block content %}
 <div class="dash-container">
     <!-- Header Section -->
-    <section class="summary-box" style="grid-column: span 3;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <section class="summary-box span-full">
+        <div class="dash-header-inline">
             <div>
                 <h1>MQTT Monitor</h1>
                 <p>Real-time system communication and device telemetry log.</p>
@@ -66,7 +66,7 @@
             </table>
         </div>
         
-        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+        <div class="flex-row u-margin-top-2">
             <button class="md-button" style="width: auto; padding: 0.75rem 2rem; background: var(--bg-widget);" onclick="location.reload()">Refresh Log</button>
             <a href="{{ url_for('routes.index') }}" class="md-button" style="width: auto; padding: 0.75rem 2rem; background: transparent; border: 1px solid var(--border);">Back to Dashboard</a>
         </div>

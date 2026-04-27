@@ -3,10 +3,10 @@
 {% block content %}
 <div class="dash-container">
     <!-- Header Section -->
-    <section class="summary-box" style="grid-column: span 3;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <section class="summary-box summary-box--full">
+        <div class="dash-header-inline">
             <div>
-                <a href="{{ url_for('routes.devices') }}" style="color: var(--accent); text-decoration: none; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                <a href="{{ url_for('routes.devices') }}" class="accent-text flex-row u-margin-bottom-1">
                     ← Back to Devices
                 </a>
                 <h1>{{ device.name.name }}</h1>
@@ -36,26 +36,24 @@
     </section>
 
     <!-- Details Grid -->
-    <section style="grid-column: span 2;">
-        <div class="premium-card" style="text-align: left;">
-            <h3 style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">Device Configuration</h3>
+    <section class="span-2">
+        <div class="premium-card text-left">
+            <h3 class="card-header u-margin-bottom-2">Device Configuration</h3>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2.5rem;">
+            <div class="responsive-grid u-gap-2">
                 <div>
                     <span class="md-label">Device Type</span>
-                    <p style="font-size: 1.1rem; font-weight: 700; margin-top: 0.5rem; color: var(--accent-secondary);">{{ device.type.split('.')[-1] }}</p>
+                    <p class="accent-text u-margin-top-1">{{ device.type.split('.')[-1] }}</p>
                 </div>
                 <div>
                     <span class="md-label">Will Report State</span>
-                    <p style="font-size: 1.1rem; font-weight: 700; margin-top: 0.5rem;">{{ 'Yes' if device.willReportState else 'No' }}</p>
+                    <p class="accent-text u-margin-top-1">{{ 'Yes' if device.willReportState else 'No' }}</p>
                 </div>
-                <div style="grid-column: span 2;">
-                    <span class="md-label">Supported Traits</span>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem;">
+                <div class="span-2">
+                    <span class="md-label">Traits & Capabilities</span>
+                    <div class="flex-row flex-wrap u-margin-top-1">
                         {% for trait in device.traits %}
-                        <span style="background: rgba(255,255,255,0.05); padding: 0.4rem 1rem; border-radius: 10px; font-size: 0.85rem; border: 1px solid var(--border);">
-                            {{ trait.split('.')[-1] }}
-                        </span>
+                        <span class="status-pill">{{ trait.split('.')[-1] }}</span>
                         {% endfor %}
                     </div>
                 </div>
@@ -64,18 +62,18 @@
     </section>
 
     <!-- Current State -->
-    <section style="grid-column: span 1;">
-        <div class="premium-card" style="background: var(--header-gradient); border: none;">
-            <h3 style="color: #fff; margin-bottom: 1.5rem;">Live Status</h3>
-            <div style="display: grid; gap: 1.5rem;">
+    <aside class="span-1">
+        <div class="premium-card premium-card--header">
+            <h3 class="u-margin-bottom-1">Live Status</h3>
+            <div class="flex-column">
                 {% for key, value in states.items() %}
-                <div style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); padding: 1.25rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.3);">
-                    <span style="display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 800; opacity: 0.9; margin-bottom: 0.5rem;">{{ key }}</span>
-                    <span style="font-size: 1.5rem; font-weight: 900;">{{ value }}</span>
+                <div class="state-box">
+                    <span class="u-margin-bottom-05 u-opacity-9 state-box__label">{{ key }}</span>
+                    <span class="u-font-weight-900 u-font-size-lg">{{ value }}</span>
                 </div>
                 {% endfor %}
             </div>
         </div>
-    </section>
+    </aside>
 </div>
 {% endblock %}
