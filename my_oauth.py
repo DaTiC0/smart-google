@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from flask_oauthlib.provider import OAuth2Provider
 from flask import session
+from sqlalchemy import select
 from models import db
 from models import Client, Token, Grant, User
 
@@ -16,7 +17,7 @@ oauth = OAuth2Provider()
 def get_current_user():
     if 'id' in session:
         uid = session['id']
-        user = User.query.get(uid)
+        user = db.session.get(User, uid)
         logger.debug("Current user: %s", user)
         return user
     return None
@@ -26,7 +27,9 @@ def get_current_user():
 def load_client(client_id):
     logger.debug("get client")
     logger.debug("client_id: %s", client_id)
-    client = Client.query.filter_by(client_id=client_id).first()
+    client = db.session.execute(
+        select(Client).filter_by(client_id=client_id)
+    ).scalar_one_or_none()
     logger.debug("Client: %s", client)
     return client
 
@@ -34,7 +37,9 @@ def load_client(client_id):
 @oauth.grantgetter
 def load_grant(client_id, code):
     logger.debug("grant getter")
-    return Grant.query.filter_by(client_id=client_id, code=code).first()
+    return db.session.execute(
+        select(Grant).filter_by(client_id=client_id, code=code)
+    ).scalar_one_or_none()
 
 
 @oauth.grantsetter
@@ -60,18 +65,24 @@ def save_grant(client_id, code, request, *args, **kwargs):
 def load_token(access_token=None, refresh_token=None):
     logger.debug("token getter")
     if access_token:
-        return Token.query.filter_by(access_token=access_token).first()
+        return db.session.execute(
+            select(Token).filter_by(access_token=access_token)
+        ).scalar_one_or_none()
     if refresh_token:
-        return Token.query.filter_by(refresh_token=refresh_token).first()
+        return db.session.execute(
+            select(Token).filter_by(refresh_token=refresh_token)
+        ).scalar_one_or_none()
 
 
 @oauth.tokensetter
 def save_token(token, request, *args, **kwargs):
     logger.debug("token setter")
-    toks = Token.query.filter_by(
-        client_id=request.client.client_id,
-        user_id=request.user.id
-    )
+    toks = db.session.execute(
+        select(Token).filter_by(
+            client_id=request.client.client_id,
+            user_id=request.user.id,
+        )
+    ).scalars().all()
     logger.debug("Existing tokens: %s", toks)
     # make sure that every client has only one token connected to a user
     for t in toks:

@@ -2,10 +2,12 @@
 # Code By DaTi_Co
 
 import logging
+from typing import Any, cast
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response, url_for
 from flask_login import login_required, current_user
+from sqlalchemy import select
 from action_devices import onSync, report_state, request_sync, actions, rquery
-from models import Client
+from models import Client, db
 from my_oauth import get_current_user, oauth
 from notifications import is_mqtt_connected
 
@@ -53,7 +55,9 @@ def authorize(*args, **kwargs):
         return redirect('/')
     if request.method == 'GET':
         client_id = kwargs.get('client_id')
-        client = Client.query.filter_by(client_id=client_id).first()
+        client = db.session.execute(
+            select(Client).filter_by(client_id=client_id)
+        ).scalar_one_or_none()
         if client is None:
             return redirect('/')
         kwargs['client'] = client
@@ -61,7 +65,7 @@ def authorize(*args, **kwargs):
         return render_template('authorize.html', **kwargs)
 
     confirm = request.form.get('confirm', 'no')
-    return confirm == 'yes'
+    return cast(Any, confirm == 'yes')
 
 
 @bp.route('/api/me')
