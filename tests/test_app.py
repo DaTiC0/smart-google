@@ -123,7 +123,8 @@ class OAuthEndpointTests(unittest.TestCase):
             db.create_all()
         self.client = flask_app.test_client()
 
-    def _create_oauth_user_and_client(self):
+    @staticmethod
+    def _create_oauth_user_and_client():
         with flask_app.app_context():
             user = User(
                 username='oauth-user',
