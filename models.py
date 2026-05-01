@@ -10,7 +10,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(40), unique=True)  # this will be removed
     #
     email = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(100))
+    password = db.Column(db.String(255))
     name = db.Column(db.String(1000))
 
 

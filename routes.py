@@ -4,8 +4,9 @@
 import logging
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response, url_for
 from flask_login import login_required, current_user
+from sqlalchemy import select
 from action_devices import onSync, report_state, request_sync, actions, rquery
-from models import Client
+from models import Client, db
 from my_oauth import get_current_user, oauth
 from notifications import is_mqtt_connected
 
@@ -43,7 +44,7 @@ def access_token():
     return {'version': '0.1.0'}
 
 
-@bp.route('/oauth/authorize', methods=['GET', 'POST'])
+@bp.route('/oauth/authorize', methods=['GET', 'POST'])  # pyright: ignore[reportArgumentType]
 # Both GET (render consent page) and POST (handle form submission) are required
 # by the OAuth2 Authorization Code flow and the @oauth.authorize_handler decorator.
 @oauth.authorize_handler
@@ -53,7 +54,9 @@ def authorize(*args, **kwargs):
         return redirect('/')
     if request.method == 'GET':
         client_id = kwargs.get('client_id')
-        client = Client.query.filter_by(client_id=client_id).first()
+        client = db.session.scalars(
+            select(Client).filter_by(client_id=client_id)
+        ).first()
         if client is None:
             return redirect('/')
         kwargs['client'] = client
