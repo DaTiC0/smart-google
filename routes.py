@@ -2,7 +2,6 @@
 # Code By DaTi_Co
 
 import logging
-from typing import Any, cast
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import select
@@ -45,7 +44,7 @@ def access_token():
     return {'version': '0.1.0'}
 
 
-@bp.route('/oauth/authorize', methods=['GET', 'POST'])
+@bp.route('/oauth/authorize', methods=['GET', 'POST'])  # pyright: ignore[reportArgumentType]
 # Both GET (render consent page) and POST (handle form submission) are required
 # by the OAuth2 Authorization Code flow and the @oauth.authorize_handler decorator.
 @oauth.authorize_handler
@@ -55,9 +54,9 @@ def authorize(*args, **kwargs):
         return redirect('/')
     if request.method == 'GET':
         client_id = kwargs.get('client_id')
-        client = db.session.execute(
+        client = db.session.scalars(
             select(Client).filter_by(client_id=client_id)
-        ).scalar_one_or_none()
+        ).first()
         if client is None:
             return redirect('/')
         kwargs['client'] = client
@@ -65,7 +64,7 @@ def authorize(*args, **kwargs):
         return render_template('authorize.html', **kwargs)
 
     confirm = request.form.get('confirm', 'no')
-    return cast(Any, confirm == 'yes')
+    return confirm == 'yes'
 
 
 @bp.route('/api/me')

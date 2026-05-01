@@ -27,9 +27,9 @@ def get_current_user():
 def load_client(client_id):
     logger.debug("get client")
     logger.debug("client_id: %s", client_id)
-    client = db.session.execute(
+    client = db.session.scalars(
         select(Client).filter_by(client_id=client_id)
-    ).scalar_one_or_none()
+    ).first()
     logger.debug("Client: %s", client)
     return client
 
@@ -37,9 +37,9 @@ def load_client(client_id):
 @oauth.grantgetter
 def load_grant(client_id, code):
     logger.debug("grant getter")
-    return db.session.execute(
+    return db.session.scalars(
         select(Grant).filter_by(client_id=client_id, code=code)
-    ).scalar_one_or_none()
+    ).first()
 
 
 @oauth.grantsetter
@@ -65,24 +65,24 @@ def save_grant(client_id, code, request, *args, **kwargs):
 def load_token(access_token=None, refresh_token=None):
     logger.debug("token getter")
     if access_token:
-        return db.session.execute(
+        return db.session.scalars(
             select(Token).filter_by(access_token=access_token)
-        ).scalar_one_or_none()
+        ).first()
     if refresh_token:
-        return db.session.execute(
+        return db.session.scalars(
             select(Token).filter_by(refresh_token=refresh_token)
-        ).scalar_one_or_none()
+        ).first()
 
 
 @oauth.tokensetter
 def save_token(token, request, *args, **kwargs):
     logger.debug("token setter")
-    toks = db.session.execute(
+    toks = db.session.scalars(
         select(Token).filter_by(
             client_id=request.client.client_id,
             user_id=request.user.id,
         )
-    ).scalars().all()
+    )
     logger.debug("Existing tokens: %s", toks)
     # make sure that every client has only one token connected to a user
     for t in toks:

@@ -22,7 +22,7 @@ def login_post():
     password = request.form.get('password')
     remember = bool(request.form.get('remember'))
 
-    user = db.session.execute(select(User).filter_by(email=email)).scalar_one_or_none()
+    user = db.session.scalars(select(User).filter_by(email=email)).first()
 
     if not user or not check_password_hash(user.password, password):
         flash('Please check your login details and try again.')
@@ -44,7 +44,7 @@ def signup_post():
     name = request.form.get('name')
     password = request.form.get('password')
     # get user from database
-    user = db.session.execute(select(User).filter_by(email=email)).scalar_one_or_none()
+    user = db.session.scalars(select(User).filter_by(email=email)).first()
     if user:
         flash('This Mail is used by another Person')
         return redirect(url_for('auth.signup'))
