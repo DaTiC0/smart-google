@@ -78,12 +78,13 @@ def load_token(access_token=None, refresh_token=None):
 def save_token(token, request, *args, **kwargs):
     logger.debug("token setter")
     # make sure that every client has only one token connected to a user
-    for t in db.session.scalars(
+    existing_tokens = db.session.execute(
         select(Token).filter_by(
             client_id=request.client.client_id,
             user_id=request.user.id,
         )
-    ):
+    ).scalars()
+    for t in existing_tokens:
         db.session.delete(t)
 
     expires_in = token.pop('expires_in')
