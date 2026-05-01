@@ -7,6 +7,7 @@ from typing import Any, cast
 from flask import Flask, send_from_directory
 from flask_login import LoginManager
 from firebase_admin import credentials, initialize_app, get_app
+from sqlalchemy import inspect, text
 from auth import auth
 from models import User, db
 from my_oauth import init_oauth
@@ -106,7 +107,43 @@ def init_database_schema(flask_app: Flask) -> None:
     logger.info('DB Engine: %s', db_uri.split(':')[0] if db_uri else 'unknown')
     with flask_app.app_context():
         db.create_all()
+        _ensure_password_column_capacity()
     logger.info('Initialized the database.')
+
+
+def _ensure_password_column_capacity() -> None:
+    """Ensure legacy user.password columns can store modern Werkzeug hashes."""
+    inspector = inspect(db.engine)
+    table_names = set(inspector.get_table_names())
+    if 'user' not in table_names:
+        return
+
+    columns = {column['name']: column for column in inspector.get_columns('user')}
+    password_column = columns.get('password')
+    if not password_column:
+        return
+
+    current_length = getattr(password_column['type'], 'length', None)
+    if current_length is None or current_length >= 255:
+        return
+
+    dialect = db.engine.dialect.name
+    if dialect == 'postgresql':
+        alter_sql = 'ALTER TABLE "user" ALTER COLUMN password TYPE VARCHAR(255)'
+    elif dialect in {'mysql', 'mariadb'}:
+        alter_sql = 'ALTER TABLE `user` MODIFY COLUMN password VARCHAR(255)'
+    else:
+        logger.warning(
+            'Detected legacy password column length=%s on unsupported dialect=%s; '
+            'manual migration to VARCHAR(255) required.',
+            current_length,
+            dialect,
+        )
+        return
+
+    logger.info('Expanding user.password column from %s to 255.', current_length)
+    db.session.execute(text(alter_sql))
+    db.session.commit()
 
 
 @app.route('/uploads/<filename>')

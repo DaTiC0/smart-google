@@ -12,7 +12,7 @@ os.environ['APP_ENV'] = 'development'
 
 from app import app as flask_app  # noqa: E402
 from app import allowed_file  # noqa: E402
-from models import db, User  # noqa: E402
+from models import db, User, Client  # noqa: E402
 from sqlalchemy import select  # used in cleanup queries
 
 
@@ -119,17 +119,89 @@ class AuthTests(unittest.TestCase):
 class OAuthEndpointTests(unittest.TestCase):
     def setUp(self):
         flask_app.config.update(TESTING=True)
+        with flask_app.app_context():
+            db.create_all()
         self.client = flask_app.test_client()
 
-    def test_oauth_routes_smoke(self):
+    def _create_oauth_user_and_client(self):
+        with flask_app.app_context():
+            user = User(
+                username='oauth-user',
+                email='oauth@example.com',
+                name='OAuth User',
+                password='test-password',
+            )
+            client = Client(
+                client_id='oauth-client-id',
+                client_secret='oauth-client-secret',
+                user=user,
+                _redirect_uris='http://localhost/callback',
+                _default_scopes='profile',
+            )
+            db.session.add_all([user, client])
+            db.session.commit()
+
+    def tearDown(self):
+        with flask_app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    def test_authorize_redirects_without_session(self):
         authorize_resp = self.client.get('/oauth/authorize', follow_redirects=False)
         self.assertEqual(authorize_resp.status_code, 302)
+        self.assertTrue(authorize_resp.location.endswith('/'))
 
+    def test_authorize_invalid_request_redirects_when_logged_in(self):
+        self._create_oauth_user_and_client()
+
+        with self.client.session_transaction() as sess:
+            sess['_user_id'] = '1'
+
+        authorize_resp = self.client.get('/oauth/authorize', follow_redirects=False)
+        self.assertEqual(authorize_resp.status_code, 302)
+        self.assertTrue(authorize_resp.location.endswith('/'))
+
+    def test_authorize_valid_request_renders_consent_for_logged_in_user(self):
+        self._create_oauth_user_and_client()
+
+        with self.client.session_transaction() as sess:
+            sess['_user_id'] = '1'
+
+        authorize_resp = self.client.get(
+            '/oauth/authorize?response_type=code&client_id=oauth-client-id'
+            '&redirect_uri=http://localhost/callback&scope=profile&state=abc',
+            follow_redirects=False,
+        )
+        self.assertEqual(authorize_resp.status_code, 200)
+        body = authorize_resp.get_data(as_text=True)
+        self.assertIn('oauth-client-id', body)
+
+    def test_token_returns_error_json_for_unsupported_grant(self):
         token_resp = self.client.post('/oauth/token', data={'grant_type': 'client_credentials'})
-        self.assertIn(token_resp.status_code, (400, 401))
+        self.assertEqual(token_resp.status_code, 400)
+        self.assertTrue(token_resp.content_type.startswith('application/json'))
+        payload = token_resp.get_json()
+        self.assertIsInstance(payload, dict)
+        self.assertEqual(payload.get('error'), 'unsupported_grant_type')
 
+    def test_me_requires_authorization_header(self):
         me_resp = self.client.get('/api/me')
         self.assertEqual(me_resp.status_code, 401)
+        self.assertTrue(me_resp.content_type.startswith('application/json'))
+        payload = me_resp.get_json()
+        self.assertIsInstance(payload, dict)
+        self.assertEqual(payload.get('error'), 'missing_authorization')
+
+    def test_me_rejects_invalid_bearer_token(self):
+        me_resp = self.client.get(
+            '/api/me',
+            headers={'Authorization': 'Bearer not-a-valid-token'},
+        )
+        self.assertEqual(me_resp.status_code, 401)
+        self.assertTrue(me_resp.content_type.startswith('application/json'))
+        payload = me_resp.get_json()
+        self.assertIsInstance(payload, dict)
+        self.assertEqual(payload.get('error'), 'invalid_token')
 
 
 class DeviceEndpointTests(unittest.TestCase):
