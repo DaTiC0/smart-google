@@ -105,6 +105,7 @@ Before opening a PR:
 make test
 make health
 make check-paths
+make pre-pr-checks
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full details and AI-assisted code review policy.

@@ -1,4 +1,4 @@
-.PHONY: run test health check-paths install-hooks
+.PHONY: run test health check-paths install-hooks pre-pr-checks
 
 PYTHON ?= python3
 
@@ -27,3 +27,6 @@ check-paths:
 
 install-hooks:
 	bash scripts/install_git_hooks.sh
+
+pre-pr-checks:
+	bash scripts/pre_pr_checks.sh
