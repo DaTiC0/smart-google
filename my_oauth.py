@@ -3,7 +3,9 @@
 # OAuth2
 import logging
 from datetime import datetime, timedelta, timezone
-from flask_oauthlib.provider import OAuth2Provider
+from authlib.integrations.flask_oauth2 import AuthorizationServer, ResourceProtector
+from authlib.oauth2.rfc6749 import grants
+from authlib.oauth2.rfc6750 import BearerTokenValidator
 from flask import session
 from sqlalchemy import select
 from models import db
@@ -11,7 +13,13 @@ from models import Client, Token, Grant, User
 
 logger = logging.getLogger(__name__)
 
-oauth = OAuth2Provider()
+oauth = AuthorizationServer()
+require_oauth = ResourceProtector()
+_oauth_configured = False
+
+
+def _utcnow_naive():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def get_current_user():
@@ -23,7 +31,6 @@ def get_current_user():
     return None
 
 
-@oauth.clientgetter
 def load_client(client_id):
     logger.debug("get client")
     logger.debug("client_id: %s", client_id)
@@ -34,48 +41,7 @@ def load_client(client_id):
     return client
 
 
-@oauth.grantgetter
-def load_grant(client_id, code):
-    logger.debug("grant getter")
-    return db.session.scalars(
-        select(Grant).filter_by(client_id=client_id, code=code)
-    ).first()
-
-
-@oauth.grantsetter
-def save_grant(client_id, code, request, *args, **kwargs):
-    # decide the expires time yourself
-    logger.debug("save grant")
-    expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=100)
-    grant = Grant(
-        client_id=client_id,
-        code=code['code'],
-        redirect_uri=request.redirect_uri,
-        _scopes=' '.join(request.scopes),
-        user=get_current_user(),
-        expires=expires
-    )
-    logger.debug("Grant created: %s", grant)
-    db.session.add(grant)
-    db.session.commit()
-    return grant
-
-
-@oauth.tokengetter
-def load_token(access_token=None, refresh_token=None):
-    logger.debug("token getter")
-    if access_token:
-        return db.session.scalars(
-            select(Token).filter_by(access_token=access_token)
-        ).first()
-    if refresh_token:
-        return db.session.scalars(
-            select(Token).filter_by(refresh_token=refresh_token)
-        ).first()
-
-
-@oauth.tokensetter
-def save_token(token, request, *args, **kwargs):
+def save_token(token_data, request):
     logger.debug("token setter")
     # make sure that every client has only one token connected to a user
     existing_tokens = db.session.execute(
@@ -87,14 +53,14 @@ def save_token(token, request, *args, **kwargs):
     for t in existing_tokens:
         db.session.delete(t)
 
-    expires_in = token.pop('expires_in')
-    expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=expires_in)
+    expires_in = int(token_data.get('expires_in', 0))
+    expires = _utcnow_naive() + timedelta(seconds=expires_in)
 
     tok = Token(
-        access_token=token['access_token'],
-        refresh_token=token['refresh_token'],
-        token_type=token['token_type'],
-        _scopes=token['scope'],
+        access_token=token_data['access_token'],
+        refresh_token=token_data.get('refresh_token'),
+        token_type=token_data.get('token_type', 'Bearer'),
+        _scopes=token_data.get('scope', ''),
         expires=expires,
         client_id=request.client.client_id,
         user_id=request.user.id,
@@ -103,3 +69,73 @@ def save_token(token, request, *args, **kwargs):
     db.session.add(tok)
     db.session.commit()
     return tok
+
+
+class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
+    def save_authorization_code(self, code, request):
+        logger.debug("save authorization code")
+        expires = _utcnow_naive() + timedelta(seconds=100)
+        grant = Grant(
+            client_id=request.client.client_id,
+            code=code,
+            redirect_uri=request.redirect_uri,
+            _scopes=request.scope or '',
+            user=request.user,
+            expires=expires,
+        )
+        db.session.add(grant)
+        db.session.commit()
+        return grant
+
+    def query_authorization_code(self, code, client):
+        grant = db.session.scalars(
+            select(Grant).filter_by(client_id=client.client_id, code=code)
+        ).first()
+        if grant and not grant.is_expired():
+            return grant
+        return None
+
+    def delete_authorization_code(self, authorization_code):
+        db.session.delete(authorization_code)
+        db.session.commit()
+
+    def authenticate_user(self, authorization_code):
+        return authorization_code.user
+
+
+class RefreshTokenGrant(grants.RefreshTokenGrant):
+    INCLUDE_NEW_REFRESH_TOKEN = True
+
+    def authenticate_refresh_token(self, refresh_token):
+        token = db.session.scalars(
+            select(Token).filter_by(refresh_token=refresh_token)
+        ).first()
+        if token and not token.is_expired() and not token.is_revoked():
+            return token
+        return None
+
+    def authenticate_user(self, credential):
+        return credential.user
+
+    def revoke_old_credential(self, credential):
+        db.session.delete(credential)
+        db.session.commit()
+
+
+class MyBearerTokenValidator(BearerTokenValidator):
+    def authenticate_token(self, token_string):
+        return db.session.scalars(
+            select(Token).filter_by(access_token=token_string)
+        ).first()
+
+
+def init_oauth(app):
+    global _oauth_configured
+    if _oauth_configured:
+        return
+
+    oauth.init_app(app, query_client=load_client, save_token=save_token)
+    oauth.register_grant(AuthorizationCodeGrant)
+    oauth.register_grant(RefreshTokenGrant)
+    require_oauth.register_token_validator(MyBearerTokenValidator())
+    _oauth_configured = True

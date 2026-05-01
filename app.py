@@ -9,7 +9,7 @@ from flask_login import LoginManager
 from firebase_admin import credentials, initialize_app, get_app
 from auth import auth
 from models import User, db
-from my_oauth import oauth
+from my_oauth import init_oauth
 from notifications import mqtt
 from routes import bp
 
@@ -51,6 +51,10 @@ def _init_firebase(flask_app: Flask) -> None:
 app = Flask(__name__, template_folder='templates')
 app.config.from_object(_get_config_object())
 
+if app.config.get('ENV') != 'production':
+    # Authlib requires HTTPS by default; allow HTTP for local/dev/test only.
+    os.environ.setdefault('AUTHLIB_INSECURE_TRANSPORT', '1')
+
 logger.info('ENV is set to: %s', app.config.get('ENV'))
 logger.info('Agent USER.ID: %s', app.config.get('AGENT_USER_ID'))
 
@@ -69,7 +73,7 @@ except Exception as e:
 db.init_app(app)
 
 # OAuth2 Authorisation
-oauth.init_app(app)
+init_oauth(app)
 
 # Flask Login
 login_manager = LoginManager()
