@@ -7,6 +7,7 @@ from authlib.integrations.flask_oauth2 import AuthorizationServer, ResourceProte
 from authlib.oauth2.rfc6749 import grants
 from authlib.oauth2.rfc6750 import BearerTokenValidator
 from flask import session
+from flask_login import current_user
 from sqlalchemy import select
 from models import db
 from models import Client, Token, Grant, User
@@ -24,6 +25,11 @@ def _utcnow_naive():
 
 
 def get_current_user():
+    # Prefer Flask-Login identity so OAuth consent works after normal login flow.
+    if current_user.is_authenticated:
+        return current_user
+
+    # Fallback for legacy session payloads.
     if 'id' in session:
         uid = session['id']
         user = db.session.get(User, uid)

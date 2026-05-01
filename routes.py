@@ -56,14 +56,15 @@ def authorize():
             logger.exception("OAuth consent grant error: %s", exc)
             return redirect('/')
 
-        scope = grant.request.scope or ''
+        request_payload = getattr(grant.request, 'payload', grant.request)
+        scope = getattr(request_payload, 'scope', '') or ''
         return render_template(
             'authorize.html',
             client=grant.client,
             user=user,
             scopes=scope.split(),
-            response_type=grant.request.response_type,
-            state=grant.request.state,
+            response_type=getattr(request_payload, 'response_type', None),
+            state=getattr(request_payload, 'state', None),
         )
 
     confirm = request.form.get('confirm', 'no')
