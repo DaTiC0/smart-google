@@ -67,9 +67,15 @@ def authorize():
             state=getattr(request_payload, 'state', None),
         )
 
+    try:
+        grant = oauth.get_consent_grant(end_user=user)
+    except OAuth2Error as exc:
+        logger.exception("OAuth authorization response error: %s", exc)
+        return redirect('/')
+
     confirm = request.form.get('confirm', 'no')
     grant_user = user if confirm == 'yes' else None
-    return oauth.create_authorization_response(grant_user=grant_user)
+    return oauth.create_authorization_response(grant_user=grant_user, grant=grant)
 
 
 @bp.route('/api/me')
