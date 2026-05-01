@@ -108,6 +108,29 @@ class AuthTests(unittest.TestCase):
         self.assertEqual(resp2.status_code, 200)
         self.assertIn('Profile', resp2.get_data(as_text=True))
 
+    def test_password_hash_fits_schema_length(self):
+        self.client.post('/signup', data={'email': 'a@b.com', 'name': 'A', 'password': 'pass'})
+        with flask_app.app_context():
+            user = db.session.execute(select(User).filter_by(email='a@b.com')).scalar_one_or_none()
+            self.assertIsNotNone(user)
+            self.assertLessEqual(len(user.password), 255)
+
+
+class OAuthEndpointTests(unittest.TestCase):
+    def setUp(self):
+        flask_app.config.update(TESTING=True)
+        self.client = flask_app.test_client()
+
+    def test_oauth_routes_smoke(self):
+        authorize_resp = self.client.get('/oauth/authorize', follow_redirects=False)
+        self.assertEqual(authorize_resp.status_code, 302)
+
+        token_resp = self.client.post('/oauth/token', data={'grant_type': 'client_credentials'})
+        self.assertEqual(token_resp.status_code, 401)
+
+        me_resp = self.client.get('/api/me')
+        self.assertEqual(me_resp.status_code, 401)
+
 
 class DeviceEndpointTests(unittest.TestCase):
     def setUp(self):
