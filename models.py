@@ -63,7 +63,7 @@ class Client(db.Model):
 
     def check_endpoint_auth_method(self, method, endpoint):
         if endpoint == 'token':
-            return method in ('client_secret_basic', 'client_secret_post')
+            return method in ('client_secret_basic', self.token_endpoint_auth_method)
         return True
 
     def check_response_type(self, response_type):
@@ -160,7 +160,7 @@ class Token(db.Model):
         return self._scopes or ''
 
     def is_revoked(self):
-        return False
+        return not bool(self.access_token)
 
     def is_expired(self):
         if self.expires is None:

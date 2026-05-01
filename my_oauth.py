@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 oauth = AuthorizationServer()
 require_oauth = ResourceProtector()
-_oauth_configured = False
 AUTHORIZATION_CODE_EXPIRES_IN = 100
 DEFAULT_ACCESS_TOKEN_EXPIRES_IN = 3600
 
@@ -127,11 +126,11 @@ class RefreshTokenGrant(grants.RefreshTokenGrant):
             return token
         return None
 
-    def authenticate_user(self, credential):
-        return credential.user
+    def authenticate_user(self, refresh_token):
+        return refresh_token.user
 
-    def revoke_old_credential(self, credential):
-        db.session.delete(credential)
+    def revoke_old_credential(self, refresh_token):
+        db.session.delete(refresh_token)
         db.session.commit()
 
 
@@ -146,12 +145,11 @@ class MyBearerTokenValidator(BearerTokenValidator):
 
 
 def init_oauth(app):
-    global _oauth_configured
-    if _oauth_configured:
+    if app.extensions.get('authlib_oauth_configured'):
         return
 
     oauth.init_app(app, query_client=load_client, save_token=save_token)
     oauth.register_grant(AuthorizationCodeGrant)
     oauth.register_grant(RefreshTokenGrant)
     require_oauth.register_token_validator(MyBearerTokenValidator())
-    _oauth_configured = True
+    app.extensions['authlib_oauth_configured'] = True
