@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 oauth = AuthorizationServer()
 require_oauth = ResourceProtector()
 _oauth_configured = False
+AUTHORIZATION_CODE_EXPIRES_IN = 100
+DEFAULT_ACCESS_TOKEN_EXPIRES_IN = 3600
 
 
 def _utcnow_naive():
@@ -53,7 +55,18 @@ def save_token(token_data, request):
     for t in existing_tokens:
         db.session.delete(t)
 
-    expires_in = int(token_data.get('expires_in', 0))
+    raw_expires_in = token_data.get('expires_in')
+    try:
+        expires_in = int(raw_expires_in)
+        if expires_in <= 0:
+            raise ValueError('expires_in must be positive')
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid token expires_in=%r; defaulting to %s seconds",
+            raw_expires_in,
+            DEFAULT_ACCESS_TOKEN_EXPIRES_IN,
+        )
+        expires_in = DEFAULT_ACCESS_TOKEN_EXPIRES_IN
     expires = _utcnow_naive() + timedelta(seconds=expires_in)
 
     tok = Token(
@@ -74,7 +87,7 @@ def save_token(token_data, request):
 class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
     def save_authorization_code(self, code, request):
         logger.debug("save authorization code")
-        expires = _utcnow_naive() + timedelta(seconds=100)
+        expires = _utcnow_naive() + timedelta(seconds=AUTHORIZATION_CODE_EXPIRES_IN)
         grant = Grant(
             client_id=request.client.client_id,
             code=code,
@@ -124,9 +137,12 @@ class RefreshTokenGrant(grants.RefreshTokenGrant):
 
 class MyBearerTokenValidator(BearerTokenValidator):
     def authenticate_token(self, token_string):
-        return db.session.scalars(
+        token = db.session.scalars(
             select(Token).filter_by(access_token=token_string)
         ).first()
+        if token and (token.is_expired() or token.is_revoked()):
+            return None
+        return token
 
 
 def init_oauth(app):

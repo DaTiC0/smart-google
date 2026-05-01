@@ -73,7 +73,9 @@ class Client(db.Model):
         return grant_type in self.grant_types
 
     def check_redirect_uri(self, redirect_uri):
-        return redirect_uri in self.redirect_uris
+        if not redirect_uri:
+            return False
+        return redirect_uri in set(self.redirect_uris)
 
     def get_default_redirect_uri(self):
         return self.default_redirect_uri
@@ -81,8 +83,6 @@ class Client(db.Model):
     def get_allowed_scope(self, scope):
         if not scope:
             return ''
-        if not self.default_scopes:
-            return scope
         requested = set(scope.split())
         allowed = set(self.default_scopes)
         if requested.issubset(allowed):

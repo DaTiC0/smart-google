@@ -4,6 +4,7 @@
 import logging
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response, url_for
 from authlib.integrations.flask_oauth2 import current_token
+from authlib.oauth2.rfc6749 import OAuth2Error
 from flask_login import login_required, current_user
 from action_devices import onSync, report_state, request_sync, actions, rquery
 from my_oauth import get_current_user, oauth, require_oauth
@@ -51,8 +52,8 @@ def authorize():
     if request.method == 'GET':
         try:
             grant = oauth.get_consent_grant(end_user=user)
-        except Exception as exc:
-            logger.warning("Invalid oauth authorize request: %s", exc)
+        except OAuth2Error as exc:
+            logger.exception("OAuth consent grant error: %s", exc)
             return redirect('/')
 
         scope = grant.request.scope or ''
@@ -61,8 +62,8 @@ def authorize():
             client=grant.client,
             user=user,
             scopes=scope.split(),
-            response_type=request.args.get('response_type', 'code'),
-            state=request.args.get('state'),
+            response_type=grant.request.response_type,
+            state=grant.request.state,
         )
 
     confirm = request.form.get('confirm', 'no')
