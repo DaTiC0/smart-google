@@ -3,11 +3,11 @@
 
 import logging
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response, url_for
+from authlib.integrations.flask_oauth2 import current_token
+from authlib.oauth2.rfc6749 import OAuth2Error
 from flask_login import login_required, current_user
-from sqlalchemy import select
 from action_devices import onSync, report_state, request_sync, actions, rquery
-from models import Client, db
-from my_oauth import get_current_user, oauth
+from my_oauth import get_current_user, oauth, require_oauth
 from notifications import is_mqtt_connected
 
 logger = logging.getLogger(__name__)
@@ -39,38 +39,42 @@ def profile():
 
 
 @bp.route('/oauth/token', methods=['POST'])
-@oauth.token_handler
 def access_token():
-    return {'version': '0.1.0'}
+    return oauth.create_token_response()
 
 
-@bp.route('/oauth/authorize', methods=['GET', 'POST'])  # pyright: ignore[reportArgumentType]
-# Both GET (render consent page) and POST (handle form submission) are required
-# by the OAuth2 Authorization Code flow and the @oauth.authorize_handler decorator.
-@oauth.authorize_handler
-def authorize(*args, **kwargs):
+@bp.route('/oauth/authorize', methods=['GET', 'POST'])
+def authorize():
     user = get_current_user()
     if not user:
         return redirect('/')
+
     if request.method == 'GET':
-        client_id = kwargs.get('client_id')
-        client = db.session.scalars(
-            select(Client).filter_by(client_id=client_id)
-        ).first()
-        if client is None:
+        try:
+            grant = oauth.get_consent_grant(end_user=user)
+        except OAuth2Error as exc:
+            logger.exception("OAuth consent grant error: %s", exc)
             return redirect('/')
-        kwargs['client'] = client
-        kwargs['user'] = user
-        return render_template('authorize.html', **kwargs)
+
+        scope = grant.request.scope or ''
+        return render_template(
+            'authorize.html',
+            client=grant.client,
+            user=user,
+            scopes=scope.split(),
+            response_type=grant.request.response_type,
+            state=grant.request.state,
+        )
 
     confirm = request.form.get('confirm', 'no')
-    return confirm == 'yes'
+    grant_user = user if confirm == 'yes' else None
+    return oauth.create_authorization_response(grant_user=grant_user)
 
 
 @bp.route('/api/me')
-@oauth.require_oauth()
-def me(req):
-    user = req.user
+@require_oauth()
+def me():
+    user = current_token.user
     return jsonify(username=user.username)
 
 
@@ -119,7 +123,7 @@ def device_status(device_id):
     device = next((d for d in dev_req['devices'] if d['id'] == device_id), None)
     if not device:
         return redirect(url_for('routes.devices'))
-    
+
     # Get current states
     states = rquery(device_id)
     return render_template('device_status.html', device=device, states=states)

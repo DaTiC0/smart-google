@@ -126,7 +126,7 @@ class OAuthEndpointTests(unittest.TestCase):
         self.assertEqual(authorize_resp.status_code, 302)
 
         token_resp = self.client.post('/oauth/token', data={'grant_type': 'client_credentials'})
-        self.assertEqual(token_resp.status_code, 401)
+        self.assertIn(token_resp.status_code, (400, 401))
 
         me_resp = self.client.get('/api/me')
         self.assertEqual(me_resp.status_code, 401)

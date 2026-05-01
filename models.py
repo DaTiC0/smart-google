@@ -1,4 +1,5 @@
 # models.py
+from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 
@@ -45,6 +46,49 @@ class Client(db.Model):
             return self._default_scopes.split()
         return []
 
+    @property
+    def grant_types(self):
+        return ['authorization_code', 'refresh_token']
+
+    @property
+    def response_types(self):
+        return ['code']
+
+    @property
+    def token_endpoint_auth_method(self):
+        return 'client_secret_post'
+
+    def check_client_secret(self, client_secret):
+        return self.client_secret == client_secret
+
+    def check_endpoint_auth_method(self, method, endpoint):
+        if endpoint == 'token':
+            return method in ('client_secret_basic', self.token_endpoint_auth_method)
+        return True
+
+    def check_response_type(self, response_type):
+        return response_type in self.response_types
+
+    def check_grant_type(self, grant_type):
+        return grant_type in self.grant_types
+
+    def check_redirect_uri(self, redirect_uri):
+        if not redirect_uri:
+            return False
+        return redirect_uri in set(self.redirect_uris)
+
+    def get_default_redirect_uri(self):
+        return self.default_redirect_uri
+
+    def get_allowed_scope(self, scope):
+        if not scope:
+            return ''
+        requested = set(scope.split())
+        allowed = set(self.default_scopes)
+        if requested.issubset(allowed):
+            return scope
+        return None
+
 
 class Grant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -74,6 +118,18 @@ class Grant(db.Model):
             return self._scopes.split()
         return []
 
+    def get_redirect_uri(self):
+        return self.redirect_uri
+
+    def get_scope(self):
+        return self._scopes or ''
+
+    def is_expired(self):
+        if self.expires is None:
+            return False
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        return self.expires < now
+
 
 class Token(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -99,3 +155,15 @@ class Token(db.Model):
         if self._scopes:
             return self._scopes.split()
         return []
+
+    def get_scope(self):
+        return self._scopes or ''
+
+    def is_revoked(self):
+        return not bool(self.access_token)
+
+    def is_expired(self):
+        if self.expires is None:
+            return False
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        return self.expires < now
