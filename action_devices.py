@@ -87,12 +87,6 @@ class MockChild:
         return current[keys[-1]]
 
 
-def _device_namespace_mode():
-    """Return configured device namespace mode."""
-    mode = str(current_app.config.get('DEVICE_NAMESPACE_MODE', 'hybrid')).strip().lower()
-    return mode if mode in {'legacy', 'hybrid', 'strict'} else 'hybrid'
-
-
 def _normalize_user_scope(user_id):
     """Normalize user scope value used in Firebase path building."""
     if user_id is None:
@@ -143,33 +137,19 @@ def reference(user_id=None):
 
 
 def _get_scoped_snapshot(user_id):
-    """Get per-user snapshot with optional legacy fallback in hybrid mode."""
-    mode = _device_namespace_mode()
+    """Get per-user device snapshot from scoped Firebase path."""
     user_scope = _normalize_user_scope(user_id)
-
-    if mode == 'legacy' or not user_scope:
-        return reference(None).get() or {}
-
-    scoped_snapshot = reference(user_scope).get() or {}
-    if scoped_snapshot or mode == 'strict':
-        return scoped_snapshot
-
-    return reference(None).get() or {}
+    if not user_scope:
+        return {}
+    return reference(user_scope).get() or {}
 
 
 def _get_scoped_device_states(device_id, user_id):
-    """Get device states under user scope with hybrid fallback for reads."""
-    mode = _device_namespace_mode()
+    """Get device states from user-scoped Firebase path."""
     user_scope = _normalize_user_scope(user_id)
-
-    if mode == 'legacy' or not user_scope:
-        return reference(None).child(device_id).child('states').get()
-
-    scoped_states = reference(user_scope).child(device_id).child('states').get()
-    if scoped_states is not None or mode == 'strict':
-        return scoped_states
-
-    return reference(None).child(device_id).child('states').get()
+    if not user_scope:
+        return None
+    return reference(user_scope).child(device_id).child('states').get()
 
 
 def rstate(user_id=None):
@@ -274,12 +254,11 @@ def rexecute(deviceId, parameters, user_id=None):
         logger.error("Invalid deviceId: %s", deviceId)
         return parameters
     try:
-        mode = _device_namespace_mode()
         user_scope = _normalize_user_scope(user_id)
-        target_reference = reference(None) if mode == 'legacy' or not user_scope else reference(user_scope)
-
-        target_reference.child(deviceId).child('states').update(parameters)
-        updated = target_reference.child(deviceId).child('states').get()
+        if not user_scope:
+            return parameters
+        reference(user_scope).child(deviceId).child('states').update(parameters)
+        updated = reference(user_scope).child(deviceId).child('states').get()
         return updated if updated is not None else parameters
     except Exception as e:
         logger.error("Error executing on device %s: %s", deviceId, e)
@@ -296,7 +275,7 @@ def onSync(user_id=None, agent_user_id=None):
         }
     except Exception as e:
         logger.error("Error in onSync: %s", e)
-        return {"agentUserId": "test-user", "devices": []}
+        return {"agentUserId": current_app.config.get('AGENT_USER_ID', 'test-user'), "devices": []}
 
 
 def onQuery(body, user_id=None):
