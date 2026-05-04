@@ -12,6 +12,7 @@
   --border: rgba(255, 255, 255, 0.1);
   --accent: #a855f7;
   --accent-secondary: #ec4899;
+  --danger: #ef4444;
   
   --header-gradient: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
   --widget-gradient: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
@@ -201,9 +202,11 @@ svg { width: 100%; height: 100%; display: block; max-width: 100%; max-height: 10
 .page-wrap { max-width: 1000px; margin: 3rem auto; padding: 0 2rem; }
 .card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 3rem; box-shadow: var(--shadow-lg); }
 
-.md-input { width: 100%; background: var(--bg-widget); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; color: #fff; font-size: 1.1rem; margin-bottom: 1.5rem; transition: border-color 0.2s; }
+.md-input { width: 100%; background: var(--bg-widget); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; color: var(--text-primary); caret-color: var(--text-primary); font-size: 1.1rem; margin-bottom: 1.5rem; transition: border-color 0.2s; }
+.md-input::placeholder { color: var(--text-secondary); opacity: 1; }
 .md-input:focus { border-color: var(--accent); outline: none; }
 .md-button { display: inline-flex; align-items: center; justify-content: center; width: 100%; background: var(--header-gradient); border: none; border-radius: 16px; padding: 1.25rem; color: #fff; font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; }
+.md-button--compact { width: auto; padding: 0.75rem 2rem; }
 .md-button:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.4); }
 
 .status-pill--active { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
@@ -252,11 +255,15 @@ svg { width: 100%; height: 100%; display: block; max-width: 100%; max-height: 10
 .auth-icon { width: 40px; height: 40px; }
 .auth-client-info { background: var(--bg-widget); border-radius: 16px; padding: 1.5rem; text-align: left; border: 1px solid var(--border); }
 
-.u-ghost-button { background: var(--bg-widget) !important; color: var(--text-secondary) !important; }
+.accent-text { color: var(--accent); }
+.accent-checkbox { accent-color: var(--accent); }
+.u-danger-button { background: var(--danger); color: #fff; border: none; }
+.u-ghost-button { background: var(--bg-widget) !important; border: 1px solid var(--border) !important; color: var(--text-secondary) !important; }
 .u-margin-left-auto { margin-left: auto; }
 .u-padding-top-2 { padding-top: 2rem; }
 .u-border-top { border-top: 1px solid var(--border); }
 .u-margin-bottom-05 { margin-bottom: 0.5rem; }
+.u-opacity-6 { opacity: 0.6; }
 .u-font-weight-900 { font-weight: 900; }
 .u-font-size-lg { font-size: 1.5rem; }
 .u-font-size-sm { font-size: 0.8rem; }
