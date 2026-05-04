@@ -17,7 +17,10 @@ def handle_connect(_client, _userdata, flags, rc):
 
 @mqtt.on_disconnect()
 def handle_disconnect(_client, _userdata, rc):
-    logger.warning('Disconnected from MQTT broker; rc=%s', rc)
+    if rc == 0:
+        logger.info('MQTT broker disconnected cleanly; rc=%s', rc)
+    else:
+        logger.warning('MQTT broker disconnected unexpectedly; rc=%s', rc)
 
 
 @mqtt.on_message()

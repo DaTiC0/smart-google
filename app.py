@@ -78,7 +78,7 @@ try:
     mqtt.init_app(app)
     mqtt.subscribe('+/notification')
     mqtt.subscribe('+/status')
-    logger.info('MQTT initialized; connected=%s', mqtt.connected)
+    logger.info('MQTT initialized; connection lifecycle will be reported by on_connect/on_disconnect callbacks')
 except Exception as e:
     logger.warning('MQTT initialization skipped: %s', e)
 
