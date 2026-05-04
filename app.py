@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def _is_production_environment() -> bool:
     """Return True when runtime environment is production-like."""
-    environment = os.getenv('APP_ENV', os.getenv('FLASK_ENV', 'development')).lower()
+    environment = os.getenv('APP_ENV', os.getenv('FLASK_ENV', 'development')).strip().lower()
     return environment in {'production', 'prod'}
 
 
@@ -151,9 +151,10 @@ def _ensure_password_column_capacity() -> None:
 
 def _password_column_migration_sql(dialect: str) -> Any:
     """Return migration SQL for supported dialects, or None if unsupported."""
-    if dialect == 'postgresql':
+    normalized_dialect = (dialect or '').strip().lower()
+    if normalized_dialect == 'postgresql':
         return 'ALTER TABLE "user" ALTER COLUMN password TYPE VARCHAR(255)'
-    if dialect in {'mysql', 'mariadb'}:
+    if normalized_dialect in {'mysql', 'mariadb'}:
         return 'ALTER TABLE `user` MODIFY COLUMN password VARCHAR(255)'
     return None
 

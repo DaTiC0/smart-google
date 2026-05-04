@@ -3,8 +3,9 @@ import unittest
 import sys
 import os
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -14,7 +15,7 @@ os.environ['APP_ENV'] = 'development'
 
 from app import app as flask_app  # noqa: E402
 from app import allowed_file  # noqa: E402
-from app import _is_production_environment, _password_column_migration_sql  # noqa: E402
+from app import _ensure_password_column_capacity, _is_production_environment, _password_column_migration_sql  # noqa: E402
 from models import db, User, Client  # noqa: E402
 from sqlalchemy import select  # used in cleanup queries
 
@@ -100,6 +101,10 @@ class AppHardeningHelpersTest(unittest.TestCase):
         with patch.dict(os.environ, {'APP_ENV': 'development'}, clear=False):
             self.assertFalse(_is_production_environment())
 
+    def test_is_production_environment_trims_whitespace(self):
+        with patch.dict(os.environ, {'APP_ENV': '  Production  '}, clear=False):
+            self.assertTrue(_is_production_environment())
+
     def test_password_column_migration_sql_for_supported_dialects(self):
         self.assertEqual(
             _password_column_migration_sql('postgresql'),
@@ -113,9 +118,46 @@ class AppHardeningHelpersTest(unittest.TestCase):
             _password_column_migration_sql('mariadb'),
             'ALTER TABLE `user` MODIFY COLUMN password VARCHAR(255)',
         )
+        self.assertEqual(
+            _password_column_migration_sql('  PostgreSQL  '),
+            'ALTER TABLE "user" ALTER COLUMN password TYPE VARCHAR(255)',
+        )
+        self.assertEqual(
+            _password_column_migration_sql('MySQL'),
+            'ALTER TABLE `user` MODIFY COLUMN password VARCHAR(255)',
+        )
 
     def test_password_column_migration_sql_for_unsupported_dialect(self):
         self.assertIsNone(_password_column_migration_sql('sqlite'))
+
+    def test_ensure_password_column_capacity_unsupported_dialect_raises_in_production(self):
+        mock_inspector = Mock()
+        mock_inspector.get_table_names.return_value = ['user']
+        mock_inspector.get_columns.return_value = [
+            {'name': 'password', 'type': SimpleNamespace(length=100)}
+        ]
+
+        with flask_app.app_context():
+            with patch('app.inspect', return_value=mock_inspector):
+                with patch.object(db.engine.dialect, 'name', 'unsupported_dialect'):
+                    with patch.dict(os.environ, {'APP_ENV': 'production'}, clear=False):
+                        with self.assertRaises(RuntimeError):
+                            _ensure_password_column_capacity()
+
+    def test_ensure_password_column_capacity_unsupported_dialect_warns_in_non_production(self):
+        mock_inspector = Mock()
+        mock_inspector.get_table_names.return_value = ['user']
+        mock_inspector.get_columns.return_value = [
+            {'name': 'password', 'type': SimpleNamespace(length=100)}
+        ]
+
+        with flask_app.app_context():
+            with patch('app.inspect', return_value=mock_inspector):
+                with patch.object(db.engine.dialect, 'name', 'unsupported_dialect'):
+                    with patch.dict(os.environ, {'APP_ENV': 'development'}, clear=False):
+                        with patch('app.logger.warning') as mock_warning:
+                            _ensure_password_column_capacity()
+                            mock_warning.assert_called()
 
 
 class AuthTests(unittest.TestCase):
