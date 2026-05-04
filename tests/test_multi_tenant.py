@@ -75,20 +75,31 @@ class MultiTenantTest(unittest.TestCase):
         call_args = mock_mqtt.publish.call_args
         self.assertEqual(call_args.kwargs['topic'], expected_topic)
 
-    @patch('firebase_admin.db')
+    @patch('action_devices.db')
+    @patch('action_devices.FIREBASE_AVAILABLE', True)
     def test_mqtt_status_update_firebase_path(self, mock_db):
         # Mock MQTT message: user 789 reports status for lamp1
         mock_message = MagicMock()
         mock_message.topic = "789/lamp1/status"
         mock_message.payload = b'{"on": false, "online": true}'
 
+        # Mock reference chain
+        mock_user_ref = MagicMock()
+        mock_device_ref = MagicMock()
+        mock_states_ref = MagicMock()
+        
+        mock_db.reference.return_value = mock_user_ref
+        mock_user_ref.child.return_value = mock_device_ref
+        mock_device_ref.child.return_value = mock_states_ref
+
         # Call handle_messages
         handle_messages(None, None, mock_message)
 
-        # Verify Firebase update path is scoped to user 789
-        expected_path = "/users/789/devices/lamp1/states"
-        mock_db.reference.assert_called_with(expected_path)
-        mock_db.reference().update.assert_called_with({"on": False, "online": True})
+        # Verify Firebase update path is scoped correctly
+        mock_db.reference.assert_called_with('/users/789/devices')
+        mock_user_ref.child.assert_called_with('lamp1')
+        mock_device_ref.child.assert_called_with('states')
+        mock_states_ref.update.assert_called_with({"on": False, "online": True})
 
     def test_mqtt_log_filtering(self):
         # Clear logs (since they are in-memory deque)

@@ -144,12 +144,20 @@ def _get_scoped_snapshot(user_id):
     return reference(user_scope).get() or {}
 
 
+def _get_user_device_states_ref(user_id, device_id):
+    """Centralized helper for building user-scoped device state Firebase references."""
+    user_scope = _normalize_user_scope(user_id)
+    if not user_scope or not device_id or '/' in str(device_id):
+        return None
+    return reference(user_scope).child(str(device_id)).child('states')
+
+
 def _get_scoped_device_states(device_id, user_id):
     """Get device states from user-scoped Firebase path."""
-    user_scope = _normalize_user_scope(user_id)
-    if not user_scope:
+    ref = _get_user_device_states_ref(user_id, device_id)
+    if not ref:
         return None
-    return reference(user_scope).child(device_id).child('states').get()
+    return ref.get()
 
 
 def rstate(user_id=None):
@@ -250,15 +258,15 @@ def rquery(deviceId, user_id=None):
 
 def rexecute(deviceId, parameters, user_id=None):
     # Sanitize deviceId to prevent path traversal attacks
-    if not deviceId or '/' in deviceId or '\\' in deviceId or '..' in deviceId:
+    if not deviceId or '/' in str(deviceId) or '\\' in str(deviceId) or '..' in str(deviceId):
         logger.error("Invalid deviceId: %s", deviceId)
         return parameters
     try:
-        user_scope = _normalize_user_scope(user_id)
-        if not user_scope:
+        ref = _get_user_device_states_ref(user_id, deviceId)
+        if not ref:
             return parameters
-        reference(user_scope).child(deviceId).child('states').update(parameters)
-        updated = reference(user_scope).child(deviceId).child('states').get()
+        ref.update(parameters)
+        updated = ref.get()
         return updated if updated is not None else parameters
     except Exception as e:
         logger.error("Error executing on device %s: %s", deviceId, e)
@@ -376,10 +384,16 @@ def actions(req, user_id=None, agent_user_id=None):
                     if payload.get('commands') and len(payload['commands']) > 0 and len(payload['commands'][0]['ids']) > 0:
                         deviceId = payload['commands'][0]['ids'][0]
                         params = payload['commands'][0]['states']
-                        # Multi-tenant MQTT topic: {user_id}/{device_id}/notification
-                        mqtt_topic = f"{user_id}/{deviceId}/notification"
-                        mqtt.publish(topic=mqtt_topic,
-                                     payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+                        
+                        # Normalize user_id for MQTT topic to prevent injection
+                        safe_user = _normalize_user_scope(user_id)
+                        if safe_user:
+                            # Multi-tenant MQTT topic: {user_id}/{device_id}/notification
+                            mqtt_topic = f"{safe_user}/{deviceId}/notification"
+                            mqtt.publish(topic=mqtt_topic,
+                                         payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+                        else:
+                            logger.warning("Skipping MQTT publish: invalid user scope %s", user_id)
                 except Exception as mqtt_error:
                     logger.warning("MQTT error: %s", mqtt_error)
             elif i['intent'] == "action.devices.DISCONNECT":

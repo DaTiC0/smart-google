@@ -105,16 +105,27 @@ def handle_messages(_client, _userdata, message):
         
         # Try to update Firebase if it's a status message
         if msg_type == 'status':
-            try:
-                from firebase_admin import db
-                # Update status in /users/{user_id}/devices/{device_id}/states
-                # Assuming payload is a JSON string of states
-                import json
-                state_updates = json.loads(payload)
-                db.reference(f'/users/{user_id}/devices/{device_id}/states').update(state_updates)
-                logger.debug("Updated Firebase status for %s/%s", user_id, device_id)
-            except Exception as e:
-                logger.error("Failed to update Firebase from MQTT: %s", e)
+            # Guard JSON decoding to avoid noisy errors when payloads are already decoded or non-JSON
+            state_updates = None
+            
+            if isinstance(payload, dict):
+                state_updates = payload
+            elif isinstance(payload, str):
+                try:
+                    import json
+                    state_updates = json.loads(payload)
+                except (ValueError, TypeError):
+                    logger.debug("Non-JSON status payload for %s/%s; skipping Firebase update", user_id, device_id)
+            
+            if state_updates is not None:
+                try:
+                    from action_devices import _get_user_device_states_ref
+                    ref = _get_user_device_states_ref(user_id, device_id)
+                    if ref:
+                        ref.update(state_updates)
+                        logger.debug("Updated Firebase status for %s/%s", user_id, device_id)
+                except Exception as e:
+                    logger.error("Failed to update Firebase from MQTT: %s", e)
 
     _append_mqtt_log(topic, payload, 'Received', user_id=user_id)
 
