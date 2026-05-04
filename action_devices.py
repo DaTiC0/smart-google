@@ -1,7 +1,6 @@
 # coding: utf-8
 # Code By DaTi_Co
 
-import json
 import logging
 import requests
 from flask import current_app
@@ -296,7 +295,7 @@ def actions(req):
             if handler is not None:
                 payload = handler(req)
             else:
-                logger.warning('Unexpected action requested: %s', json.dumps(req))
+                logger.warning('Unexpected action requested with intent: %s', intent)
                 payload = {}
         return payload
     except Exception as e:
@@ -313,7 +312,6 @@ def request_sync(api_key, agent_user_id):
         response = requests.post(url, json=data)
 
         logger.debug('Requests Code: %s  Response Code: %s', requests.codes["ok"], response.status_code)
-        logger.debug('Response: %s', response.text)
 
         return response.status_code == requests.codes['ok']
     except Exception as e:
