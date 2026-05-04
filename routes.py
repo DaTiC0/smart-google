@@ -9,7 +9,7 @@ from authlib.oauth2.rfc6749 import OAuth2Error
 from flask_login import login_required, current_user
 from action_devices import onSync, report_state, request_sync, actions, rquery
 from my_oauth import get_current_user, load_client, oauth, require_oauth
-from notifications import is_mqtt_connected
+from notifications import get_mqtt_logs, is_mqtt_connected
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +164,13 @@ def device_status(device_id):
 @bp.route('/mqtt')
 @login_required
 def mqtt_log():
-    return render_template('mqtt_log.html')
+    connected = is_mqtt_connected()
+    return render_template(
+        'mqtt_log.html',
+        broker_connected=connected,
+        tls_enabled=bool(current_app.config.get('MQTT_TLS_ENABLED', False)),
+        log_entries=get_mqtt_logs(),
+    )
 
 
 @bp.route('/smarthome', methods=['POST'])

@@ -9,21 +9,23 @@
                 <h1>MQTT Monitor</h1>
                 <p>Real-time system communication and device telemetry log.</p>
             </div>
-            <div class="status-pill status-pill--active">Live Feed</div>
+            <div class="status-pill {{ 'status-pill--active' if broker_connected else '' }}">
+                {{ 'Live Feed' if broker_connected else 'Offline Feed' }}
+            </div>
         </div>
         
         <div class="stats-row">
             <div class="stat-item">
                 <svg class="stat-item__icon"><use xlink:href="#icon-wifi"></use></svg>
                 <div>
-                    <span class="stat-item__value">Connected</span>
+                    <span class="stat-item__value">{{ 'Connected' if broker_connected else 'Disconnected' }}</span>
                     <span class="stat-item__label">Broker Status</span>
                 </div>
             </div>
             <div class="stat-item">
                 <svg class="stat-item__icon"><use xlink:href="#icon-shield"></use></svg>
                 <div>
-                    <span class="stat-item__value">Encrypted</span>
+                    <span class="stat-item__value">{{ 'Encrypted' if tls_enabled else 'Unencrypted' }}</span>
                     <span class="stat-item__label">Security</span>
                 </div>
             </div>
@@ -43,25 +45,20 @@
                     </tr>
                 </thead>
                 <tbody id="mqtt-log-body">
-                    <!-- Sample technical entries to show design -->
+                    {% for entry in log_entries %}
                     <tr>
-                        <td>17:25:01</td>
-                        <td><code>living_room/light/status</code></td>
-                        <td><code>{"on": true, "bri": 80}</code></td>
-                        <td><span class="status-pill status-pill--active" style="font-size: 0.7rem;">Received</span></td>
+                        <td>{{ entry.timestamp }}</td>
+                        <td><code>{{ entry.topic }}</code></td>
+                        <td><code>{{ entry.payload }}</code></td>
+                        <td>
+                            <span class="status-pill {{ entry.status_class }}" style="font-size: 0.7rem;">{{ entry.status }}</span>
+                        </td>
                     </tr>
+                    {% else %}
                     <tr>
-                        <td>17:24:55</td>
-                        <td><code>kitchen/ac/notification</code></td>
-                        <td><code>{"temp": 22, "mode": "cool"}</code></td>
-                        <td><span class="status-pill status-pill--active" style="font-size: 0.7rem;">Received</span></td>
+                        <td colspan="4" class="text-center">No MQTT events available yet.</td>
                     </tr>
-                    <tr>
-                        <td>17:24:40</td>
-                        <td><code>bedroom/lock/status</code></td>
-                        <td><code>{"locked": true}</code></td>
-                        <td><span class="status-pill status-pill--active" style="font-size: 0.7rem;">Received</span></td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
