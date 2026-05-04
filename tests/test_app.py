@@ -467,11 +467,31 @@ class DeviceEndpointTests(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         mock_actions.assert_called_once()
         _, kwargs = mock_actions.call_args
-        # user_id should be extracted from current_token.user.id (mocked as 1)
-        # Note: the test payload has 'agentUserId': '42', 
-        # routes.py:_resolve_smarthome_user_scope gives preference to request-level agentUserId
+        # user_id should be extracted from request-level agentUserId (42) as it takes precedence
         self.assertEqual(kwargs['user_id'], '42')
         self.assertEqual(kwargs['agent_user_id'], '42')
+
+    def test_smarthome_fallback_to_token_user_id(self):
+        # Test fallback when agentUserId is omitted from payload
+        payload = {
+            'requestId': '2',
+            'inputs': [{'intent': 'action.devices.SYNC', 'payload': {}}],
+        }
+
+        mock_token = MagicMock()
+        mock_token.user.id = 99
+
+        with patch('routes.actions', return_value={'devices': []}) as mock_actions, \
+             patch('my_oauth.require_oauth.acquire_token'), \
+             patch('routes.current_token', mock_token):
+            resp = self.client.post('/smarthome', json=payload)
+
+        self.assertEqual(resp.status_code, 200)
+        mock_actions.assert_called_once()
+        _, kwargs = mock_actions.call_args
+        # user_id should fall back to current_token.user.id (99)
+        self.assertEqual(kwargs['user_id'], '99')
+        self.assertEqual(kwargs['agent_user_id'], '99')
 
 
 class ActionDevicesUnitTests(unittest.TestCase):
