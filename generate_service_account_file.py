@@ -15,7 +15,7 @@ load_dotenv(path.join(basedir, '.env'))
 
 def generate_file():
     s_file = path.join(basedir, 'service_account_file.json')
-    with open(s_file) as json_file:
+    with open(s_file, encoding='utf-8') as json_file:
         data = json.load(json_file)
     data.update({
         'project_id': environ.get('PROJECT_ID'),

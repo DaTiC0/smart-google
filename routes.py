@@ -213,7 +213,7 @@ def smarthome():
 
     user_scope, agent_user_id = _resolve_smarthome_user_scope(req)
     logger.debug("Smart home request from user %s: %s", user_scope, req.get('requestId', 'unknown'))
-    
+
     result = {
         'requestId': req['requestId'],
         'payload': actions(req, user_id=user_scope, agent_user_id=agent_user_id),

@@ -23,6 +23,7 @@ def _get_int_env(name, default):
     except (TypeError, ValueError):
         return default
 
+
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
 

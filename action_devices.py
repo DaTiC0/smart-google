@@ -276,7 +276,8 @@ def rexecute(deviceId, parameters, user_id=None):
 def onSync(user_id=None, agent_user_id=None):
     try:
         resolved_user = _normalize_user_scope(user_id)
-        agent_user = str(agent_user_id if agent_user_id is not None else (resolved_user or current_app.config.get('AGENT_USER_ID', 'test-user')))
+        fallback = resolved_user or current_app.config.get('AGENT_USER_ID', 'test-user')
+        agent_user = str(agent_user_id if agent_user_id is not None else fallback)
         return {
             "agentUserId": agent_user,
             "devices": rsync(resolved_user)
@@ -381,10 +382,10 @@ def actions(req, user_id=None, agent_user_id=None):
                 payload = onExecute(req, user_id=user_id)
                 # SEND TEST MQTT
                 try:
-                    if payload.get('commands') and len(payload['commands']) > 0 and len(payload['commands'][0]['ids']) > 0:
+                    if payload.get('commands') and payload['commands'] and payload['commands'][0]['ids']:
                         deviceId = payload['commands'][0]['ids'][0]
                         params = payload['commands'][0]['states']
-                        
+
                         # Normalize user_id for MQTT topic to prevent injection
                         safe_user = _normalize_user_scope(user_id)
                         if safe_user:
