@@ -232,29 +232,31 @@ def onExecute(body):
 
 def commands(payload, deviceId, execCommand, params):
     """Map an execution command to its device-state parameters and apply them."""
-    # Dispatch map: command → parameter transformer
-    _COMMAND_PARAMS = {
-        'action.devices.commands.OnOff': lambda p: {'on': p['on']} if 'on' in p else None,
-        'action.devices.commands.BrightnessAbsolute': lambda p: {'brightness': p.get('brightness', 100), 'on': True},
-        'action.devices.commands.StartStop': lambda p: {'isRunning': p['start']},
-        'action.devices.commands.PauseUnpause': lambda p: {'isPaused': p['pause']},
-        'action.devices.commands.GetCameraStream': lambda p: p,
-        'action.devices.commands.LockUnlock': lambda p: {'isLocked': p['lock']},
-    }
-
     try:
-        transformer = _COMMAND_PARAMS.get(execCommand)
-        if transformer is None:
-            logger.debug('Unhandled command: %s', execCommand)
-        else:
-            transformed = transformer(params)
-            if transformed is None:
-                logger.error("'on' parameter missing for OnOff command")
+        if execCommand == 'action.devices.commands.OnOff':
+            if 'on' not in params:
+                logger.error("Error: 'on' parameter missing for OnOff command")
                 payload['commands'][0]['status'] = 'ERROR'
                 payload['commands'][0]['errorCode'] = 'hardError'
                 return payload
-            params = transformed
-            logger.debug('Executing command: %s', execCommand)
+            params = {'on': params['on']}
+            logger.debug('OnOff')
+        elif execCommand == 'action.devices.commands.BrightnessAbsolute':
+            params = {'brightness': params.get('brightness', 100), 'on': True}
+            logger.debug('BrightnessAbsolute')
+        elif execCommand == 'action.devices.commands.StartStop':
+            params = {'isRunning': params['start']}
+            logger.debug('StartStop')
+        elif execCommand == 'action.devices.commands.PauseUnpause':
+            params = {'isPaused': params['pause']}
+            logger.debug('PauseUnpause')
+        elif execCommand == 'action.devices.commands.GetCameraStream':
+            logger.debug('GetCameraStream')
+        elif execCommand == 'action.devices.commands.LockUnlock':
+            params = {'isLocked': params['lock']}
+            logger.debug('LockUnlock')
+        else:
+            logger.debug('Unhandled command: %s', execCommand)
 
         states = rexecute(deviceId, params)
         payload['commands'][0]['states'] = states
@@ -266,44 +268,29 @@ def commands(payload, deviceId, execCommand, params):
         return payload
 
 
-def _handle_execute(req):
-    """Execute intent handler – runs onExecute and publishes MQTT notification."""
-    payload = onExecute(req)
-    try:
-        if (payload.get('commands')
-                and payload['commands'][0]['ids']):
-            deviceId = payload['commands'][0]['ids'][0]
-            params = payload['commands'][0]['states']
-            mqtt.publish(
-                topic=str(deviceId) + '/notification',
-                payload=str(params),
-                qos=0,
-            )
-    except Exception as mqtt_error:
-        logger.warning("MQTT error: %s", mqtt_error)
-    return payload
-
-
-# ---------------------------------------------------------------------------
-# Dispatch map: Google Home intent → handler function
-# ---------------------------------------------------------------------------
-_INTENT_DISPATCH = {
-    "action.devices.SYNC": lambda req: onSync(),
-    "action.devices.QUERY": onQuery,
-    "action.devices.EXECUTE": _handle_execute,
-    "action.devices.DISCONNECT": lambda req: {},
-}
-
-
 def actions(req):
     try:
         payload = {}
         for i in req['inputs']:
             intent = i['intent']
-            logger.debug('Intent: %s', intent)
-            handler = _INTENT_DISPATCH.get(intent)
-            if handler is not None:
-                payload = handler(req)
+            if intent == "action.devices.SYNC":
+                payload = onSync()
+            elif intent == "action.devices.QUERY":
+                payload = onQuery(req)
+            elif intent == "action.devices.EXECUTE":
+                payload = onExecute(req)
+                # SEND TEST MQTT
+                try:
+                    if payload.get('commands') and len(payload['commands']) > 0 and len(payload['commands'][0]['ids']) > 0:
+                        deviceId = payload['commands'][0]['ids'][0]
+                        params = payload['commands'][0]['states']
+                        mqtt.publish(topic=str(deviceId) + '/' + 'notification',
+                                     payload=str(params), qos=0)
+                except Exception as mqtt_error:
+                    logger.warning("MQTT error: %s", mqtt_error)
+            elif intent == "action.devices.DISCONNECT":
+                logger.debug("DISCONNECT ACTION")
+                payload = {}
             else:
                 logger.warning('Unexpected action requested with intent: %s', intent)
                 payload = {}
