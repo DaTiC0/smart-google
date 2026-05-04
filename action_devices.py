@@ -87,10 +87,54 @@ class MockChild:
         return current[keys[-1]]
 
 
+def _device_namespace_mode():
+    """Return configured device namespace mode."""
+    mode = str(current_app.config.get('DEVICE_NAMESPACE_MODE', 'hybrid')).strip().lower()
+    return mode if mode in {'legacy', 'hybrid', 'strict'} else 'hybrid'
+
+
+def _normalize_user_scope(user_id):
+    """Normalize user scope value used in Firebase path building."""
+    if user_id is None:
+        return None
+    user_value = str(user_id).strip()
+    if not user_value or '/' in user_value or '\\' in user_value or '..' in user_value:
+        return None
+    return user_value
+
+
+def _to_sync_device(device_id, raw_data):
+    """Convert Firebase record to SYNC-compatible device object."""
+    if not isinstance(raw_data, dict):
+        return None
+
+    device_copy = raw_data.copy()
+    device_copy.pop('states', None)
+    device_copy['id'] = device_id
+    return device_copy
+
+
+def _build_sync_devices(snapshot):
+    """Build sorted SYNC-compatible devices from snapshot."""
+    if not isinstance(snapshot, dict):
+        return []
+
+    devices = []
+    for device_id, raw_data in snapshot.items():
+        sync_device = _to_sync_device(device_id, raw_data)
+        if sync_device:
+            devices.append(sync_device)
+    devices.sort(key=lambda item: item['id'])
+    return devices
+
+
 # firebase initialisation problem was fixed?
-def reference():
+def reference(user_id=None):
     if FIREBASE_AVAILABLE:
         try:
+            user_scope = _normalize_user_scope(user_id)
+            if user_scope:
+                return db.reference(f'/users/{user_scope}/devices')
             return db.reference('/devices')
         except Exception as e:
             # Firebase is installed but not initialized (e.g. missing credentials in dev)
@@ -98,10 +142,39 @@ def reference():
     return MockRef()
 
 
-def rstate():
+def _get_scoped_snapshot(user_id):
+    """Get per-user snapshot with optional legacy fallback in hybrid mode."""
+    mode = _device_namespace_mode()
+    user_scope = _normalize_user_scope(user_id)
+
+    if mode == 'legacy' or not user_scope:
+        return reference(None).get() or {}
+
+    scoped_snapshot = reference(user_scope).get() or {}
+    if scoped_snapshot or mode == 'strict':
+        return scoped_snapshot
+
+    return reference(None).get() or {}
+
+
+def _get_scoped_device_states(device_id, user_id):
+    """Get device states under user scope with hybrid fallback for reads."""
+    mode = _device_namespace_mode()
+    user_scope = _normalize_user_scope(user_id)
+
+    if mode == 'legacy' or not user_scope:
+        return reference(None).child(device_id).child('states').get()
+
+    scoped_states = reference(user_scope).child(device_id).child('states').get()
+    if scoped_states is not None or mode == 'strict':
+        return scoped_states
+
+    return reference(None).child(device_id).child('states').get()
+
+
+def rstate(user_id=None):
     try:
-        ref = reference()
-        devices_data = ref.get()
+        devices_data = _get_scoped_snapshot(user_id)
         if not devices_data:
             return {"devices": {"states": {}}}
 
@@ -114,7 +187,7 @@ def rstate():
         for device in devices:
             device = str(device)
             logger.debug('Getting Device status from: %s', device)
-            state_data = rquery(device)
+            state_data = rquery(device, user_id=user_id)
             if state_data:
                 payload['devices']['states'][device] = state_data
             logger.debug('Device state: %s', state_data)
@@ -125,23 +198,10 @@ def rstate():
         return {"devices": {"states": {}}}
 
 
-def rsync():
+def rsync(user_id=None):
     try:
-        ref = reference()
-        snapshot = ref.get()
-        if not snapshot:
-            return []
-
-        DEVICES = []
-        for k, v in snapshot.items():
-            v_copy = v.copy()
-            v_copy.pop('states', None)
-            DEVICE = {
-                "id": k,
-            }
-            DEVICE.update(v_copy)
-            DEVICES.append(DEVICE)
-        return DEVICES
+        snapshot = _get_scoped_snapshot(user_id)
+        return _build_sync_devices(snapshot)
     except Exception as e:
         logger.error("Error in rsync: %s", e)
         return []
@@ -158,11 +218,10 @@ def _normalize_device_type(device_type):
     return type_value.lower()
 
 
-def get_dashboard_devices():
+def get_dashboard_devices(user_id=None):
     """Return Firebase-backed device data for the Device Management dashboard."""
     try:
-        ref = reference()
-        snapshot = ref.get() or {}
+        snapshot = _get_scoped_snapshot(user_id)
         devices = []
 
         for device_id, raw_data in snapshot.items():
@@ -196,46 +255,51 @@ def get_dashboard_devices():
         return []
 
 
-def rquery(deviceId):
+def rquery(deviceId, user_id=None):
     # Sanitize deviceId to prevent path traversal attacks
     if not deviceId or '/' in deviceId or '\\' in deviceId or '..' in deviceId:
         logger.error("Invalid deviceId: %s", deviceId)
         return {"online": False}
     try:
-        ref = reference()
-        res = ref.child(deviceId).child('states').get()
+        res = _get_scoped_device_states(deviceId, user_id)
         return res if res is not None else {"online": False}
     except Exception as e:
         logger.error("Error querying device %s: %s", deviceId, e)
         return {"online": False}
 
 
-def rexecute(deviceId, parameters):
+def rexecute(deviceId, parameters, user_id=None):
     # Sanitize deviceId to prevent path traversal attacks
     if not deviceId or '/' in deviceId or '\\' in deviceId or '..' in deviceId:
         logger.error("Invalid deviceId: %s", deviceId)
         return parameters
     try:
-        ref = reference()
-        ref.child(deviceId).child('states').update(parameters)
-        return ref.child(deviceId).child('states').get()
+        mode = _device_namespace_mode()
+        user_scope = _normalize_user_scope(user_id)
+        target_reference = reference(None) if mode == 'legacy' or not user_scope else reference(user_scope)
+
+        target_reference.child(deviceId).child('states').update(parameters)
+        updated = target_reference.child(deviceId).child('states').get()
+        return updated if updated is not None else parameters
     except Exception as e:
         logger.error("Error executing on device %s: %s", deviceId, e)
         return parameters
 
 
-def onSync():
+def onSync(user_id=None, agent_user_id=None):
     try:
+        resolved_user = _normalize_user_scope(user_id)
+        agent_user = str(agent_user_id if agent_user_id is not None else (resolved_user or current_app.config.get('AGENT_USER_ID', 'test-user')))
         return {
-            "agentUserId": current_app.config['AGENT_USER_ID'],
-            "devices": rsync()
+            "agentUserId": agent_user,
+            "devices": rsync(resolved_user)
         }
     except Exception as e:
         logger.error("Error in onSync: %s", e)
         return {"agentUserId": "test-user", "devices": []}
 
 
-def onQuery(body):
+def onQuery(body, user_id=None):
     try:
         # handle query request
         payload = {
@@ -244,7 +308,7 @@ def onQuery(body):
         for i in body['inputs']:
             for device in i['payload']['devices']:
                 deviceId = device['id']
-                data = rquery(deviceId)
+                data = rquery(deviceId, user_id=user_id)
                 payload['devices'][deviceId] = data
         return payload
     except Exception as e:
@@ -252,7 +316,7 @@ def onQuery(body):
         return {"devices": {}}
 
 
-def onExecute(body):
+def onExecute(body, user_id=None):
     try:
         # handle execute request
         payload = {
@@ -273,14 +337,14 @@ def onExecute(body):
                         execCommand = execution['command']
                         params = execution['params']
                         # First try to refactor
-                        payload = commands(payload, deviceId, execCommand, params)
+                        payload = commands(payload, deviceId, execCommand, params, user_id=user_id)
         return payload
     except Exception as e:
         logger.error("Error in onExecute: %s", e)
         return {'commands': [{'ids': [], 'status': 'ERROR', 'errorCode': 'deviceNotFound'}]}
 
 
-def commands(payload, deviceId, execCommand, params):
+def commands(payload, deviceId, execCommand, params, user_id=None):
     """ more clean code as was bedore.
     dont remember how state ad parameters is used """
     try:
@@ -308,7 +372,7 @@ def commands(payload, deviceId, execCommand, params):
             logger.debug('LockUnlock')
 
         # Out from elif
-        states = rexecute(deviceId, params)
+        states = rexecute(deviceId, params, user_id=user_id)
         payload['commands'][0]['states'] = states
 
         return payload
@@ -318,16 +382,16 @@ def commands(payload, deviceId, execCommand, params):
         return payload
 
 
-def actions(req):
+def actions(req, user_id=None, agent_user_id=None):
     try:
         payload = {}
         for i in req['inputs']:
             if i['intent'] == "action.devices.SYNC":
-                payload = onSync()
+                payload = onSync(user_id=user_id, agent_user_id=agent_user_id)
             elif i['intent'] == "action.devices.QUERY":
-                payload = onQuery(req)
+                payload = onQuery(req, user_id=user_id)
             elif i['intent'] == "action.devices.EXECUTE":
-                payload = onExecute(req)
+                payload = onExecute(req, user_id=user_id)
                 # SEND TEST MQTT
                 try:
                     if payload.get('commands') and len(payload['commands']) > 0 and len(payload['commands'][0]['ids']) > 0:
