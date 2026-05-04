@@ -149,7 +149,7 @@ def _ensure_password_column_capacity() -> None:
     db.session.commit()
 
 
-def _password_column_migration_sql(dialect: str):
+def _password_column_migration_sql(dialect: str) -> Any:
     """Return migration SQL for supported dialects, or None if unsupported."""
     if dialect == 'postgresql':
         return 'ALTER TABLE "user" ALTER COLUMN password TYPE VARCHAR(255)'
