@@ -38,11 +38,20 @@ Then, you need to export some environment variables that will be used by the app
 - `SECRET_KEY`
 - `SQLALCHEMY_DATABASE_URI`
 - `MQTT_BROKER_URL`
+- `MQTT_BROKER_PORT` (Default: 11868)
 - `MQTT_USERNAME`
 - `MQTT_PASSWORD`
+- `MQTT_TLS_ENABLED` (Boolean, e.g., 'True')
 - `API_KEY`
-- `AGENT_USER_ID`
-- `DATABASEURL`
+- `AGENT_USER_ID` (Legacy fallback, now generally derived from user session)
+- `DATABASEURL` (Firebase Realtime Database URL)
+
+## Features
+
+- **Multi-tenant MQTT:** Supports multiple users with isolated MQTT message routing and logging.
+- **Strict Device Isolation:** Devices are scoped by account ID in Firebase, ensuring users can only interact with their own devices.
+- **Dynamic MQTT Monitor:** Real-time view of MQTT broker status, TLS settings, and live message feeds filtered by user.
+- **Automated Service Account Management:** Dynamically generates Google Service Account files from environment variables.
 
 ### Google Service Account
 

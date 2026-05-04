@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -436,7 +436,15 @@ class DeviceEndpointTests(unittest.TestCase):
 
     def test_smarthome_sync(self):
         payload = {'requestId': '1', 'inputs': [{'intent': 'action.devices.SYNC', 'payload': {}}]}
-        resp = self.client.post('/smarthome', json=payload)
+        
+        # Mock current_token.user.id because routes.py:smarthome uses it
+        mock_token = MagicMock()
+        mock_token.user.id = 1
+        
+        with patch('my_oauth.require_oauth.acquire_token'), \
+             patch('routes.current_token', mock_token):
+            resp = self.client.post('/smarthome', json=payload)
+        
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
         self.assertIn('payload', data)
@@ -448,12 +456,20 @@ class DeviceEndpointTests(unittest.TestCase):
             'inputs': [{'intent': 'action.devices.SYNC', 'payload': {}}],
         }
 
-        with patch('routes.actions', return_value={'devices': []}) as mock_actions:
+        mock_token = MagicMock()
+        mock_token.user.id = 1
+
+        with patch('routes.actions', return_value={'devices': []}) as mock_actions, \
+             patch('my_oauth.require_oauth.acquire_token'), \
+             patch('routes.current_token', mock_token):
             resp = self.client.post('/smarthome', json=payload)
 
         self.assertEqual(resp.status_code, 200)
         mock_actions.assert_called_once()
         _, kwargs = mock_actions.call_args
+        # user_id should be extracted from current_token.user.id (mocked as 1)
+        # Note: the test payload has 'agentUserId': '42', 
+        # routes.py:_resolve_smarthome_user_scope gives preference to request-level agentUserId
         self.assertEqual(kwargs['user_id'], '42')
         self.assertEqual(kwargs['agent_user_id'], '42')
 

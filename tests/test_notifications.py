@@ -2,7 +2,7 @@ import unittest
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -51,13 +51,13 @@ class NotificationsHandlersTest(unittest.TestCase):
         self.assertEqual(logs[0]['payload'], 'fffe41')
         self.assertEqual(logs[0]['status'], 'Received')
 
-    def test_log_buffer_keeps_latest_100_entries(self):
-        for idx in range(105):
+    def test_log_buffer_keeps_latest_200_entries(self):
+        for idx in range(205):
             _append_mqtt_log('topic', f'payload-{idx}', 'Received')
 
         logs = get_mqtt_logs()
-        self.assertEqual(len(logs), 100)
-        self.assertEqual(logs[0]['payload'], 'payload-104')
+        self.assertEqual(len(logs), 200)
+        self.assertEqual(logs[0]['payload'], 'payload-204')
         self.assertEqual(logs[-1]['payload'], 'payload-5')
 
 
@@ -81,7 +81,12 @@ class MqttRouteViewModelTest(unittest.TestCase):
             },
         ]
 
+        # Mock current_user since it's required for get_mqtt_logs(user_id)
+        mock_user = MagicMock()
+        mock_user.id = 1
+
         with flask_app.test_request_context('/mqtt'), \
+             patch('routes.current_user', mock_user), \
              patch('routes.is_mqtt_connected', return_value=True), \
              patch('routes.get_mqtt_logs', return_value=sample_logs), \
              patch('routes.render_template', return_value='ok') as render_mock:
