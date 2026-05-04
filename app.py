@@ -76,6 +76,10 @@ try:
         app.config.get('MQTT_TLS_ENABLED'),
     )
     mqtt.init_app(app)
+    # New multi-tenant topic structure: {user_id}/{device_id}/{notification|status}
+    mqtt.subscribe('+/+/notification')
+    mqtt.subscribe('+/+/status')
+    # Keep legacy subscriptions for backward compatibility during migration
     mqtt.subscribe('+/notification')
     mqtt.subscribe('+/status')
     logger.info('MQTT initialized; connection lifecycle will be reported by on_connect/on_disconnect callbacks')
