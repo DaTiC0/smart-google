@@ -7,7 +7,7 @@ from flask import Blueprint, current_app, request, jsonify, redirect, render_tem
 from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2.rfc6749 import OAuth2Error
 from flask_login import login_required, current_user
-from action_devices import onSync, report_state, request_sync, actions, rquery
+from action_devices import onSync, report_state, request_sync, actions, rquery, get_dashboard_devices
 from my_oauth import get_current_user, load_client, oauth, require_oauth
 from notifications import get_mqtt_logs, is_mqtt_connected
 
@@ -141,8 +141,7 @@ def ifttt():
 @login_required
 def devices():
     logger.debug("Retrieving devices for user: %s", current_user)
-    dev_req = onSync()
-    device_list = dev_req['devices']
+    device_list = get_dashboard_devices()
     logger.debug("Device list: %s", device_list)
     return render_template('devices.html', title='Smart-Home', devices=device_list)
 

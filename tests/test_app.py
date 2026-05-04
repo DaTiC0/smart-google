@@ -459,3 +459,56 @@ class ActionDevicesUnitTests(unittest.TestCase):
             self.assertIn('commands', exec_resp)
             self.assertEqual(exec_resp['commands'][0]['status'], 'ERROR')
             self.assertFalse(request_sync('', ''))
+
+    def test_get_dashboard_devices_uses_live_state(self):
+        with flask_app.app_context():
+            from action_devices import get_dashboard_devices
+
+            fake_snapshot = {
+                'kitchen-light': {
+                    'type': 'action.devices.types.LIGHT',
+                    'name': {'name': 'Kitchen Light'},
+                    'states': {'online': True},
+                },
+                'garage-door': {
+                    'type': 'action.devices.types.DOOR',
+                    'name': {'name': 'Garage Door'},
+                    'states': {'online': False},
+                },
+            }
+
+            with patch('action_devices.reference', return_value=SimpleNamespace(get=lambda: fake_snapshot)):
+                devices = get_dashboard_devices()
+
+        self.assertEqual(len(devices), 2)
+        self.assertEqual(devices[0]['display_name'], 'Garage Door')
+        self.assertEqual(devices[0]['status'], 'Offline')
+        self.assertEqual(devices[0]['status_class'], '')
+        self.assertEqual(devices[1]['display_name'], 'Kitchen Light')
+        self.assertEqual(devices[1]['status'], 'Online')
+        self.assertEqual(devices[1]['status_class'], 'status-pill--active')
+
+    def test_devices_route_uses_dashboard_devices(self):
+        from routes import devices as devices_view
+
+        sample_devices = [
+            {
+                'id': 'kitchen-light',
+                'display_name': 'Kitchen Light',
+                'type': 'action.devices.types.LIGHT',
+                'type_label': 'Light',
+                'icon': 'light',
+                'status': 'Online',
+                'status_class': 'status-pill--active',
+            }
+        ]
+
+        with flask_app.test_request_context('/devices'), \
+             patch('routes.get_dashboard_devices', return_value=sample_devices), \
+             patch('routes.render_template', return_value='ok') as render_mock:
+            response = devices_view.__wrapped__()
+
+        self.assertEqual(response, 'ok')
+        args, kwargs = render_mock.call_args
+        self.assertEqual(args[0], 'devices.html')
+        self.assertEqual(kwargs['devices'], sample_devices)

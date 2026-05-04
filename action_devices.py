@@ -147,6 +147,55 @@ def rsync():
         return []
 
 
+def _normalize_device_type(device_type):
+    """Return concise lowercase type for UI icon mapping."""
+    if not device_type:
+        return 'devices'
+
+    type_value = str(device_type)
+    if 'action.devices.types.' in type_value:
+        type_value = type_value.split('action.devices.types.', 1)[1]
+    return type_value.lower()
+
+
+def get_dashboard_devices():
+    """Return Firebase-backed device data for the Device Management dashboard."""
+    try:
+        ref = reference()
+        snapshot = ref.get() or {}
+        devices = []
+
+        for device_id, raw_data in snapshot.items():
+            if not isinstance(raw_data, dict):
+                continue
+
+            states = raw_data.get('states') if isinstance(raw_data.get('states'), dict) else {}
+            name_info = raw_data.get('name') if isinstance(raw_data.get('name'), dict) else {}
+
+            normalized_type = _normalize_device_type(raw_data.get('type'))
+            display_name = name_info.get('name') or device_id
+            is_online = bool(states.get('online', False))
+
+            devices.append({
+                'id': device_id,
+                'display_name': display_name,
+                'type': raw_data.get('type', 'Unknown'),
+                'type_label': normalized_type.replace('_', ' ').title(),
+                'icon': normalized_type if normalized_type in {
+                    'light', 'heating', 'ac', 'camera', 'door', 'alarm', 'garage', 'garden'
+                } else 'devices',
+                'is_online': is_online,
+                'status': 'Online' if is_online else 'Offline',
+                'status_class': 'status-pill--active' if is_online else '',
+            })
+
+        devices.sort(key=lambda item: item['display_name'].lower())
+        return devices
+    except Exception as e:
+        logger.error("Error getting dashboard devices: %s", e)
+        return []
+
+
 def rquery(deviceId):
     # Sanitize deviceId to prevent path traversal attacks
     if not deviceId or '/' in deviceId or '\\' in deviceId or '..' in deviceId:
