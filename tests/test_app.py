@@ -130,34 +130,40 @@ class AppHardeningHelpersTest(unittest.TestCase):
     def test_password_column_migration_sql_for_unsupported_dialect(self):
         self.assertIsNone(_password_column_migration_sql('sqlite'))
 
-    def test_ensure_password_column_capacity_unsupported_dialect_raises_in_production(self):
+    @staticmethod
+    def test_ensure_password_column_capacity_unsupported_dialect_raises_in_production():
         mock_inspector = Mock()
         mock_inspector.get_table_names.return_value = ['user']
         mock_inspector.get_columns.return_value = [
             {'name': 'password', 'type': SimpleNamespace(length=100)}
         ]
 
-        with flask_app.app_context():
-            with patch('app.inspect', return_value=mock_inspector):
-                with patch.object(db.engine.dialect, 'name', 'unsupported_dialect'):
-                    with patch.dict(os.environ, {'APP_ENV': 'production'}, clear=False):
-                        with self.assertRaises(RuntimeError):
-                            _ensure_password_column_capacity()
+        with flask_app.app_context(), \
+                patch('app.inspect', return_value=mock_inspector), \
+                patch.object(db.engine.dialect, 'name', 'unsupported_dialect'), \
+                patch.dict(os.environ, {'APP_ENV': 'production'}, clear=False):
+            try:
+                _ensure_password_column_capacity()
+            except RuntimeError:
+                pass
+            else:
+                raise AssertionError('Expected RuntimeError for unsupported dialect in production')
 
-    def test_ensure_password_column_capacity_unsupported_dialect_warns_in_non_production(self):
+    @staticmethod
+    def test_ensure_password_column_capacity_unsupported_dialect_warns_in_non_production():
         mock_inspector = Mock()
         mock_inspector.get_table_names.return_value = ['user']
         mock_inspector.get_columns.return_value = [
             {'name': 'password', 'type': SimpleNamespace(length=100)}
         ]
 
-        with flask_app.app_context():
-            with patch('app.inspect', return_value=mock_inspector):
-                with patch.object(db.engine.dialect, 'name', 'unsupported_dialect'):
-                    with patch.dict(os.environ, {'APP_ENV': 'development'}, clear=False):
-                        with patch('app.logger.warning') as mock_warning:
-                            _ensure_password_column_capacity()
-                            mock_warning.assert_called()
+        with flask_app.app_context(), \
+                patch('app.inspect', return_value=mock_inspector), \
+                patch.object(db.engine.dialect, 'name', 'unsupported_dialect'), \
+                patch.dict(os.environ, {'APP_ENV': 'development'}, clear=False), \
+                patch('app.logger.warning') as mock_warning:
+            _ensure_password_column_capacity()
+            assert mock_warning.called
 
 
 class AuthTests(unittest.TestCase):
