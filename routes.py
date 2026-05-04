@@ -2,18 +2,49 @@
 # Code By DaTi_Co
 
 import logging
+from urllib.parse import urlencode, urlparse, parse_qsl, urlunparse
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response, url_for
 from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2.rfc6749 import OAuth2Error
 from flask_login import login_required, current_user
 from action_devices import onSync, report_state, request_sync, actions, rquery
-from my_oauth import get_current_user, oauth, require_oauth
+from my_oauth import get_current_user, load_client, oauth, require_oauth
 from notifications import is_mqtt_connected
 
 logger = logging.getLogger(__name__)
 
 
 bp = Blueprint('routes', __name__)
+
+
+def _oauth_error_response(exc):
+    """Return OAuth errors in a client-friendly way when redirect URI is valid."""
+    client_id = request.values.get('client_id')
+    redirect_uri = request.values.get('redirect_uri')
+    state = request.values.get('state')
+
+    client = load_client(client_id) if client_id else None
+    if client:
+        if not redirect_uri:
+            redirect_uri = client.get_default_redirect_uri()
+        if redirect_uri and client.check_redirect_uri(redirect_uri):
+            parsed = urlparse(redirect_uri)
+            if parsed.scheme and parsed.netloc:
+                params = {'error': exc.error}
+                if exc.description:
+                    params['error_description'] = exc.description
+                if state:
+                    params['state'] = state
+
+                existing_query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                existing_query.update(params)
+                safe_redirect_uri = urlunparse(
+                    parsed._replace(query=urlencode(existing_query))
+                )
+                return redirect(safe_redirect_uri)
+
+    status_code = getattr(exc, 'status_code', 400) or 400
+    return jsonify(error=exc.error, error_description=exc.description), status_code
 
 
 @bp.route('/')
@@ -49,13 +80,13 @@ def authorize():
     if not user:
         return redirect('/')
 
-    if request.method == 'GET':
-        try:
-            grant = oauth.get_consent_grant(end_user=user)
-        except OAuth2Error as exc:
-            logger.exception("OAuth consent grant error: %s", exc)
-            return redirect('/')
+    try:
+        grant = oauth.get_consent_grant(end_user=user)
+    except OAuth2Error as exc:
+        logger.exception("OAuth consent grant error: %s", exc)
+        return _oauth_error_response(exc)
 
+    if request.method == 'GET':
         request_payload = getattr(grant.request, 'payload', grant.request)
         scope = getattr(request_payload, 'scope', '') or ''
         return render_template(
@@ -69,7 +100,7 @@ def authorize():
 
     confirm = request.form.get('confirm', 'no')
     grant_user = user if confirm == 'yes' else None
-    return oauth.create_authorization_response(grant_user=grant_user)
+    return oauth.create_authorization_response(grant_user=grant_user, grant=grant)
 
 
 @bp.route('/api/me')

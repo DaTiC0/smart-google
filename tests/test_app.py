@@ -3,6 +3,7 @@ import unittest
 import sys
 import os
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -141,6 +142,11 @@ class OAuthEndpointTests(unittest.TestCase):
             )
             db.session.add_all([user, client])
             db.session.commit()
+            return user.id
+
+    def _login_oauth_test_user_session(self, user_id):
+        with self.client.session_transaction() as sess:
+            sess['_user_id'] = str(user_id)
 
     def tearDown(self):
         with flask_app.app_context():
@@ -152,21 +158,20 @@ class OAuthEndpointTests(unittest.TestCase):
         self.assertEqual(authorize_resp.status_code, 302)
         self.assertTrue(authorize_resp.location.endswith('/'))
 
-    def test_authorize_invalid_request_redirects_when_logged_in(self):
-        self._create_oauth_user_and_client()
-
-        with self.client.session_transaction() as sess:
-            sess['_user_id'] = '1'
+    def test_authorize_invalid_request_returns_oauth_error_when_logged_in(self):
+        user_id = self._create_oauth_user_and_client()
+        self._login_oauth_test_user_session(user_id)
 
         authorize_resp = self.client.get('/oauth/authorize', follow_redirects=False)
-        self.assertEqual(authorize_resp.status_code, 302)
-        self.assertTrue(authorize_resp.location.endswith('/'))
+        self.assertEqual(authorize_resp.status_code, 400)
+        self.assertTrue(authorize_resp.content_type.startswith('application/json'))
+        payload = authorize_resp.get_json()
+        self.assertIsInstance(payload, dict)
+        self.assertEqual(payload.get('error'), 'unsupported_response_type')
 
     def test_authorize_valid_request_renders_consent_for_logged_in_user(self):
-        self._create_oauth_user_and_client()
-
-        with self.client.session_transaction() as sess:
-            sess['_user_id'] = '1'
+        user_id = self._create_oauth_user_and_client()
+        self._login_oauth_test_user_session(user_id)
 
         authorize_resp = self.client.get(
             '/oauth/authorize?response_type=code&client_id=oauth-client-id'
@@ -176,6 +181,142 @@ class OAuthEndpointTests(unittest.TestCase):
         self.assertEqual(authorize_resp.status_code, 200)
         body = authorize_resp.get_data(as_text=True)
         self.assertIn('oauth-client-id', body)
+
+    def test_authorization_code_exchange_allows_me_endpoint(self):
+        user_id = self._create_oauth_user_and_client()
+        self._login_oauth_test_user_session(user_id)
+
+        authorize_path = (
+            '/oauth/authorize?response_type=code&client_id=oauth-client-id'
+            '&redirect_uri=http://localhost/callback&scope=profile&state=xyz'
+        )
+
+        authorize_get_resp = self.client.get(authorize_path, follow_redirects=False)
+        self.assertEqual(authorize_get_resp.status_code, 200)
+
+        authorize_post_resp = self.client.post(
+            authorize_path,
+            data={'confirm': 'yes'},
+            follow_redirects=False,
+        )
+        self.assertEqual(authorize_post_resp.status_code, 302)
+
+        redirect_location = authorize_post_resp.headers.get('Location')
+        self.assertIsNotNone(redirect_location)
+
+        query_params = parse_qs(urlparse(redirect_location).query)
+        auth_code = query_params.get('code', [None])[0]
+        state = query_params.get('state', [None])[0]
+        self.assertIsNotNone(auth_code)
+        self.assertEqual(state, 'xyz')
+
+        token_resp = self.client.post(
+            '/oauth/token',
+            data={
+                'grant_type': 'authorization_code',
+                'client_id': 'oauth-client-id',
+                'client_secret': 'oauth-client-secret',
+                'code': auth_code,
+                'redirect_uri': 'http://localhost/callback',
+            },
+        )
+        self.assertEqual(token_resp.status_code, 200)
+        token_payload = token_resp.get_json()
+        self.assertIsInstance(token_payload, dict)
+        self.assertEqual(token_payload.get('token_type'), 'Bearer')
+        access_token = token_payload.get('access_token')
+        self.assertTrue(access_token)
+
+        me_resp = self.client.get('/api/me', headers={'Authorization': f'Bearer {access_token}'})
+        self.assertEqual(me_resp.status_code, 200)
+        me_payload = me_resp.get_json()
+        self.assertIsInstance(me_payload, dict)
+        self.assertEqual(me_payload.get('username'), 'oauth-user')
+
+    def test_authorize_deny_consent_redirects_with_access_denied(self):
+        user_id = self._create_oauth_user_and_client()
+        self._login_oauth_test_user_session(user_id)
+
+        authorize_path = (
+            '/oauth/authorize?response_type=code&client_id=oauth-client-id'
+            '&redirect_uri=http://localhost/callback&scope=profile&state=deny-state'
+        )
+
+        authorize_get_resp = self.client.get(authorize_path, follow_redirects=False)
+        self.assertEqual(authorize_get_resp.status_code, 200)
+
+        authorize_post_resp = self.client.post(
+            authorize_path,
+            data={'confirm': 'no'},
+            follow_redirects=False,
+        )
+        self.assertEqual(authorize_post_resp.status_code, 302)
+
+        redirect_location = authorize_post_resp.headers.get('Location')
+        self.assertIsNotNone(redirect_location)
+        query_params = parse_qs(urlparse(redirect_location).query)
+        self.assertEqual(query_params.get('error', [None])[0], 'access_denied')
+        self.assertEqual(query_params.get('state', [None])[0], 'deny-state')
+
+    def test_token_rejects_invalid_authorization_code(self):
+        self._create_oauth_user_and_client()
+
+        token_resp = self.client.post(
+            '/oauth/token',
+            data={
+                'grant_type': 'authorization_code',
+                'client_id': 'oauth-client-id',
+                'client_secret': 'oauth-client-secret',
+                'code': 'invalid-code',
+                'redirect_uri': 'http://localhost/callback',
+            },
+        )
+        self.assertEqual(token_resp.status_code, 400)
+        self.assertTrue(token_resp.content_type.startswith('application/json'))
+        token_payload = token_resp.get_json()
+        self.assertIsInstance(token_payload, dict)
+        self.assertEqual(token_payload.get('error'), 'invalid_grant')
+
+    def test_token_rejects_authorization_code_with_mismatched_redirect_uri(self):
+        user_id = self._create_oauth_user_and_client()
+        self._login_oauth_test_user_session(user_id)
+
+        authorize_path = (
+            '/oauth/authorize?response_type=code&client_id=oauth-client-id'
+            '&redirect_uri=http://localhost/callback&scope=profile&state=mismatch-state'
+        )
+
+        authorize_get_resp = self.client.get(authorize_path, follow_redirects=False)
+        self.assertEqual(authorize_get_resp.status_code, 200)
+
+        authorize_post_resp = self.client.post(
+            authorize_path,
+            data={'confirm': 'yes'},
+            follow_redirects=False,
+        )
+        self.assertEqual(authorize_post_resp.status_code, 302)
+
+        redirect_location = authorize_post_resp.headers.get('Location')
+        self.assertIsNotNone(redirect_location)
+        query_params = parse_qs(urlparse(redirect_location).query)
+        auth_code = query_params.get('code', [None])[0]
+        self.assertIsNotNone(auth_code)
+
+        token_resp = self.client.post(
+            '/oauth/token',
+            data={
+                'grant_type': 'authorization_code',
+                'client_id': 'oauth-client-id',
+                'client_secret': 'oauth-client-secret',
+                'code': auth_code,
+                'redirect_uri': 'http://localhost/wrong-callback',
+            },
+        )
+        self.assertEqual(token_resp.status_code, 400)
+        self.assertTrue(token_resp.content_type.startswith('application/json'))
+        token_payload = token_resp.get_json()
+        self.assertIsInstance(token_payload, dict)
+        self.assertEqual(token_payload.get('error'), 'invalid_grant')
 
     def test_token_returns_error_json_for_unsupported_grant(self):
         token_resp = self.client.post('/oauth/token', data={'grant_type': 'client_credentials'})

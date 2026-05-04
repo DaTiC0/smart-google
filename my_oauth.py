@@ -92,12 +92,17 @@ def save_token(token_data, request):
 class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
     def save_authorization_code(self, code, request):
         logger.debug("save authorization code")
+        request_payload = getattr(request, 'payload', request)
+        redirect_uri = getattr(request_payload, 'redirect_uri', None) or getattr(request, 'redirect_uri', None)
+        scope = getattr(request_payload, 'scope', None)
+        if scope is None:
+            scope = getattr(request, 'scope', '')
         expires = _utcnow_naive() + timedelta(seconds=AUTHORIZATION_CODE_EXPIRES_IN)
         grant = Grant(
             client_id=request.client.client_id,
             code=code,
-            redirect_uri=request.redirect_uri,
-            _scopes=request.scope or '',
+            redirect_uri=redirect_uri,
+            _scopes=scope or '',
             user=request.user,
             expires=expires,
         )
