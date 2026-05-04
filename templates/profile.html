@@ -1,7 +1,58 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="title">
-  Welcome, {{ name }}!
-</h1>
+<div class="dash-container">
+    <!-- Header Section -->
+    <section class="summary-box" style="grid-column: span 3;">
+        <h1>Account Profile</h1>
+        <p>Manage your personal information and system access.</p>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="header__avatar" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--accent);">{{ name[0] | upper }}</div>
+                <div>
+                    <span class="stat-item__value">{{ name }}</span>
+                    <span class="stat-item__label">Account Owner</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-shield"></use></svg>
+                <div>
+                    <span class="stat-item__value">Verified</span>
+                    <span class="stat-item__label">Security Level</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profile Details -->
+    <section style="grid-column: span 3;">
+        <div class="premium-card" style="text-align: left; display: grid; gap: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
+                <div>
+                    <h3 style="margin: 0; color: var(--text-primary); text-transform: none; letter-spacing: normal; text-align: left;">Personal Information</h3>
+                    <p style="color: var(--text-secondary); margin-top: 0.25rem;">Your identity details across the Smart Home network.</p>
+                </div>
+                <div class="status-pill status-pill--active">Active Account</div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem;">
+                <div>
+                    <span class="md-label">Display Name</span>
+                    <p style="font-size: 1.25rem; font-weight: 700; margin-top: 0.5rem;">{{ name }}</p>
+                </div>
+                <div>
+                    <span class="md-label">Email Address</span>
+                    <p style="font-size: 1.25rem; font-weight: 700; margin-top: 0.5rem; opacity: 0.8;">{{ current_user.email if current_user.is_authenticated else 'Not Available' }}</p>
+                </div>
+            </div>
+
+            <div class="flex-row flex-wrap u-margin-top-1" style="padding-top: 2rem; border-top: 1px solid var(--border);">
+                <a class="md-button u-width-auto u-ghost-button" href="{{ url_for('routes.index') }}">Back to Dashboard</a>
+                <a class="md-button u-width-auto" href="{{ url_for('routes.devices') }}">Manage Devices</a>
+                <a class="md-button u-width-auto u-danger-button" href="{{ url_for('auth.logout') }}" style="margin-left: auto;">Sign Out</a>
+            </div>
+        </div>
+    </section>
+</div>
 {% endblock %}

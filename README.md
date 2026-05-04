@@ -42,14 +42,11 @@ Then, you need to export some environment variables that will be used by the app
 - `MQTT_PASSWORD`
 - `API_KEY`
 - `AGENT_USER_ID`
-- `SERVICE_ACCOUNT_FILE`
 - `DATABASEURL`
 
 ### Google Service Account
 
-To use Google actions and Firebase, you need a service account JSON file downloaded from the Google Cloud Console. Set `SERVICE_ACCOUNT_FILE` to the path of that file.
-
-At startup, `config.py` calls `generate_file()` (from `generate_service_account_file.py`), which reads the JSON template pointed to by `SERVICE_ACCOUNT_FILE` and overrides the following fields with values from your environment. This lets you keep sensitive credentials out of the JSON file itself:
+The repository already ships with a service account template at `service_account_file.json` in the project root. `config.py` calls `generate_file()` (from `generate_service_account_file.py`) at startup, loading that template (or another file if you set the optional `SERVICE_ACCOUNT_FILE` to override the path) and overriding the following fields with values from your environment:
 
 - `PROJECT_ID`
 - `PRIVATE_KEY_ID`

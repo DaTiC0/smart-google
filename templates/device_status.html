@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dash-container">
+    <!-- Header Section -->
+    <section class="summary-box summary-box--full">
+        <div class="dash-header-inline">
+            <div>
+                <a href="{{ url_for('routes.devices') }}" class="accent-text flex-row u-margin-bottom-1">
+                    ← Back to Devices
+                </a>
+                <h1>{{ device.name.name }}</h1>
+                <p>Technical specifications and real-time state management.</p>
+            </div>
+            <div class="status-pill {% if states.online %}status-pill--active{% endif %}">
+                {{ 'Online' if states.online else 'Offline' }}
+            </div>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-shield"></use></svg>
+                <div>
+                    <span class="stat-item__value">{{ device.id }}</span>
+                    <span class="stat-item__label">Device ID</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <svg class="stat-item__icon"><use xlink:href="#icon-wifi"></use></svg>
+                <div>
+                    <span class="stat-item__value">MQTT Enabled</span>
+                    <span class="stat-item__label">Protocol</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Details Grid -->
+    <section class="span-2">
+        <div class="premium-card text-left">
+            <h3 class="card-header u-margin-bottom-2">Device Configuration</h3>
+            
+            <div class="responsive-grid u-gap-2">
+                <div>
+                    <span class="md-label">Device Type</span>
+                    <p class="accent-text u-margin-top-1">{{ device.type.split('.')[-1] }}</p>
+                </div>
+                <div>
+                    <span class="md-label">Will Report State</span>
+                    <p class="accent-text u-margin-top-1">{{ 'Yes' if device.willReportState else 'No' }}</p>
+                </div>
+                <div class="span-2">
+                    <span class="md-label">Traits & Capabilities</span>
+                    <div class="flex-row flex-wrap u-margin-top-1">
+                        {% for trait in device.traits %}
+                        <span class="status-pill">{{ trait.split('.')[-1] }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Current State -->
+    <aside class="span-1">
+        <div class="premium-card premium-card--header">
+            <h3 class="u-margin-bottom-1">Live Status</h3>
+            <div class="flex-column">
+                {% for key, value in states.items() %}
+                <div class="state-box">
+                    <span class="u-margin-bottom-05 u-opacity-9 state-box__label">{{ key }}</span>
+                    <span class="u-font-weight-900 u-font-size-lg">{{ value }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}

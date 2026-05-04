@@ -62,4 +62,6 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     DB_SERVER = 'localhost'
     DEBUG = True
-    DATABASE_URI = 'sqlite:///:memory:'
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False

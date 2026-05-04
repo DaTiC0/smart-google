@@ -1,43 +1,103 @@
 # coding: utf-8
 # Code By DaTi_Co
-import logging
 import os
-import secrets
+import logging
+from typing import Any, cast
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+from flask import Flask, send_from_directory
+from flask_login import LoginManager
+from firebase_admin import credentials, initialize_app, get_app
+from sqlalchemy import inspect, text
+from auth import auth
+from models import User, db
+from my_oauth import init_oauth
+from notifications import mqtt
+from routes import bp
 
-from flask import Flask, jsonify, send_from_directory, request
-
-logging.basicConfig(level=logging.INFO)
+# Module logger
 logger = logging.getLogger(__name__)
 
-# Try importing Firebase, but don't fail if not available
-try:
-    from firebase_admin import credentials, initialize_app
-    FIREBASE_AVAILABLE = True
-except ImportError:
-    logger.warning("Firebase admin not available, continuing without it")
-    FIREBASE_AVAILABLE = False
 
-# Try importing other modules, but provide fallbacks
+def _is_production_environment() -> bool:
+    """Return True when runtime environment is production-like."""
+    environment = os.getenv('APP_ENV', os.getenv('FLASK_ENV', 'development')).strip().lower()
+    return environment in {'production', 'prod'}
+
+
+def _get_config_object() -> str:
+    """Resolve config from explicit APP_ENV with FLASK_ENV fallback."""
+    if _is_production_environment():
+        return 'config.ProductionConfig'
+    return 'config.DevelopmentConfig'
+
+
+def _init_firebase(flask_app: Flask) -> None:
+    """Initialize Firebase only when required configuration is available."""
+    # Avoid duplicate default app initialization when module reload/import happens.
+    try:
+        get_app()
+        logger.info('Firebase already initialized; skipping re-initialization.')
+        return
+    except ValueError:
+        pass
+
+    service_account_data = flask_app.config.get('SERVICE_ACCOUNT_DATA')
+    database_url = flask_app.config.get('DATABASEURL')
+
+    if not service_account_data or not database_url:
+        logger.warning('Firebase config missing; skipping Firebase initialization.')
+        return
+
+    firebase_credentials = credentials.Certificate(service_account_data)
+    firebase_options = {'databaseURL': database_url}
+    initialize_app(firebase_credentials, firebase_options)
+
+
+# Flask Application Configuration
+app = Flask(__name__, template_folder='templates')
+app.config.from_object(_get_config_object())
+
+if not _is_production_environment():
+    # Authlib requires HTTPS by default; allow HTTP for local/dev/test only.
+    os.environ.setdefault('AUTHLIB_INSECURE_TRANSPORT', '1')
+
+logger.info('ENV is set to: %s', app.config.get('ENV'))
+logger.info('Agent USER.ID: %s', app.config.get('AGENT_USER_ID'))
+
+app.register_blueprint(bp, url_prefix='')
+app.register_blueprint(auth, url_prefix='')
+
+# MQTT CONNECT
 try:
-    from flask_login import LoginManager
-    from models import User, db
-    from my_oauth import init_oauth
-    from notifications import mqtt
-    from routes import bp
-    from auth import auth
-    FULL_FEATURES = True
-except ImportError as e:
-    logger.warning("Some modules not available: %s", e)
-    FULL_FEATURES = False
+    mqtt.init_app(app)
+    mqtt.subscribe('+/notification')
+    mqtt.subscribe('+/status')
+except Exception as e:
+    logger.warning('MQTT initialization skipped: %s', e)
+
+# SQLAlchemy DATABASE
+db.init_app(app)
+
+# OAuth2 Authorisation
+init_oauth(app)
+
+# Flask Login
+login_manager = LoginManager()
+cast(Any, login_manager).login_view = 'auth.login'
+login_manager.init_app(app)
+
+# FIREBASE_CONFIG environment variable can be added
+_init_firebase(app)
 
 # File Extensions for Upload Folder
 ALLOWED_EXTENSIONS = {'txt', 'py'}
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Get User ID"""
+    session = cast(Any, db.session)
+    return session.get(User, int(user_id))
 
 
 def allowed_file(filename):
@@ -46,166 +106,72 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def create_app(config_class=None):
-    """Application factory."""
-    application = Flask(__name__, template_folder='templates')
-    application.config['UPLOAD_FOLDER'] = './static/upload'
-
-    # Load configuration
-    env = os.environ.get('FLASK_ENV', os.environ.get('ENV', 'development'))
-    if config_class is not None:
-        application.config.from_object(config_class)
-    elif env == 'production':
-        try:
-            application.config.from_object('config.ProductionConfig')
-        except Exception as e:
-            logger.warning("Could not load ProductionConfig: %s", e)
-    else:
-        try:
-            application.config.from_object('config.DevelopmentConfig')
-        except Exception as e:
-            logger.warning("Could not load DevelopmentConfig: %s", e)
-
-    # Apply fallback defaults so the app starts cleanly in dev/test
-    if not application.config.get('AGENT_USER_ID'):
-        application.config['AGENT_USER_ID'] = 'test-user'
-    if not application.config.get('API_KEY'):
-        application.config['API_KEY'] = 'test-api-key'
-    if not application.config.get('DATABASEURL'):
-        application.config['DATABASEURL'] = 'https://test-project-default-rtdb.firebaseio.com/'
-    if not application.config.get('SECRET_KEY'):
-        application.config['SECRET_KEY'] = secrets.token_urlsafe(16)
-        logger.warning("SECRET_KEY not set in environment. Using a generated key (not suitable for production).")
-
-    logger.info('ENV is set to: %s', env)
-    logger.info('AGENT_USER_ID: %s', application.config.get('AGENT_USER_ID'))
-
-    # Register extensions and blueprints when all features are available;
-    # fall back to minimal routes if extension initialisation fails.
-    if FULL_FEATURES:
-        if not _init_full_features(application):
-            _register_fallback_routes(application)
-    else:
-        _register_fallback_routes(application)
-
-    # Initialize Firebase when full features are active
-    if FIREBASE_AVAILABLE and FULL_FEATURES:
-        try:
-            svc = application.config.get('SERVICE_ACCOUNT_DATA')
-            if svc:
-                firebase_creds = credentials.Certificate(svc)
-                firebase_opts = {'databaseURL': application.config['DATABASEURL']}
-                initialize_app(firebase_creds, firebase_opts)
-                logger.info("Firebase initialized successfully")
-        except Exception as e:
-            logger.warning("Could not initialize Firebase: %s", e)
-
-    return application
+def init_database_schema(flask_app: Flask) -> None:
+    """Create DB tables if they do not exist."""
+    db_uri = flask_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    logger.info('DB Engine: %s', db_uri.split(':')[0] if db_uri else 'unknown')
+    with flask_app.app_context():
+        db.create_all()
+        _ensure_password_column_capacity()
+    logger.info('Initialized the database.')
 
 
-def _init_full_features(application):
-    """Initialize extensions and blueprints for the full-featured app.
+def _ensure_password_column_capacity() -> None:
+    """Ensure legacy user.password columns can store modern Werkzeug hashes."""
+    inspector = inspect(db.engine)
+    table_names = set(inspector.get_table_names())
+    if 'user' not in table_names:
+        return
 
-    Returns True when all extensions and blueprints were successfully
-    registered, False otherwise.
-    """
-    try:
-        mqtt.init_app(application)
-        mqtt.subscribe('+/notification')
-        mqtt.subscribe('+/status')
-        db.init_app(application)
-        init_oauth(application)
+    columns = {column['name']: column for column in inspector.get_columns('user')}
+    password_column = columns.get('password')
+    if not password_column:
+        return
 
-        login_manager = LoginManager()
-        login_manager.login_view = 'auth.login'
-        login_manager.init_app(application)
+    current_length = getattr(password_column['type'], 'length', None)
+    if current_length is None or current_length >= 255:
+        return
 
-        @login_manager.user_loader
-        def load_user(user_id):
-            """Get User by ID."""
-            return db.session.get(User, int(user_id))
+    dialect = db.engine.dialect.name
+    alter_sql = _password_column_migration_sql(dialect)
+    if not alter_sql:
+        message = (
+            'Detected legacy password column length=%s on unsupported dialect=%s; '
+            'manual migration to VARCHAR(255) required.'
+        )
+        if _is_production_environment():
+            raise RuntimeError(message % (current_length, dialect))
+        logger.warning(message, current_length, dialect)
+        return
 
-        # Create database tables within the application context
-        with application.app_context():
-            try:
-                db_uri = application.config.get('SQLALCHEMY_DATABASE_URI', '')
-                logger.info('DB Engine: %s', db_uri.split(':')[0] if db_uri else 'sqlite')
-                db.create_all()
-                logger.info('Initialized the database.')
-            except Exception as e:
-                logger.warning("Could not create database tables: %s", e)
-
-        application.register_blueprint(bp, url_prefix='')
-        application.register_blueprint(auth, url_prefix='')
-        return True
-    except Exception as e:
-        logger.warning("Could not initialize full features: %s", e)
-        return False
+    logger.info('Expanding user.password column from %s to 255.', current_length)
+    db.session.execute(text(alter_sql))
+    db.session.commit()
 
 
-def _register_fallback_routes(application):
-    """Register minimal routes when full features are unavailable."""
-    @application.route('/')
-    def index():
-        return {'status': 'Smart-Google is working!', 'agent_user_id': application.config['AGENT_USER_ID']}
-
-    @application.route('/health')
-    def health():
-        return jsonify({
-            'status': 'degraded',
-            'service': 'smart-google',
-            'mqtt_connected': False,
-        }), 503
-
-    try:
-        from action_devices import onSync, actions, request_sync, report_state
-
-        @application.route('/devices')
-        def devices():
-            try:
-                return onSync()
-            except Exception as e:
-                return {'error': str(e)}, 500
-
-        @application.route('/smarthome', methods=['POST'])
-        def smarthome():
-            try:
-                req_data = request.get_json()
-                result = {
-                    'requestId': req_data.get('requestId', 'unknown'),
-                    'payload': actions(req_data),
-                }
-                return jsonify(result)
-            except Exception as e:
-                return {'error': str(e)}, 500
-
-        @application.route('/sync')
-        def sync():
-            try:
-                success = request_sync(application.config['API_KEY'], application.config['AGENT_USER_ID'])
-                state_result = report_state()
-                return {'sync_requested': True, 'success': success, 'state_report': state_result}
-            except Exception as e:
-                return {'error': str(e)}, 500
-
-    except ImportError as e:
-        logger.warning("Could not import action_devices: %s", e)
-
-
-# ---------------------------------------------------------------------------
-# Module-level application instance (used by Gunicorn and the test suite)
-# ---------------------------------------------------------------------------
-app = create_app()
+def _password_column_migration_sql(dialect: str) -> Any:
+    """Return migration SQL for supported dialects, or None if unsupported."""
+    normalized_dialect = (dialect or '').strip().lower()
+    if normalized_dialect == 'postgresql':
+        return 'ALTER TABLE "user" ALTER COLUMN password TYPE VARCHAR(255)'
+    if normalized_dialect in {'mysql', 'mariadb'}:
+        return 'ALTER TABLE `user` MODIFY COLUMN password VARCHAR(255)'
+    return None
 
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Serve files from the upload folder."""
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    """File formats for upload folder"""
+    return send_from_directory(app.config['UPLOAD_FOLDER'],
+                               filename)
+
+
+@app.cli.command('init-db')
+def create_db_command() -> None:
+    """Initialize database tables."""
+    init_database_schema(app)
 
 
 if __name__ == '__main__':
-    logger.info("Starting Smart-Google Flask Application")
-    logger.info("Full features: %s", FULL_FEATURES)
-    host = os.environ.get('FLASK_RUN_HOST', '127.0.0.1')
-    app.run(host=host, port=5000, debug=False)
+    init_database_schema(app)
+    app.run(debug=app.config.get('DEBUG', False))

@@ -1,57 +1,114 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DaTi_SmarT</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='md3.css') }}?v=1.1" />
 </head>
 
-<body>
-    <section class="hero is-primary is-fullheight">
+<body class="app-body">
+    <!-- SVG Sprite -->
+    <div style="display: none;">
+        {% include 'icons.svg' %}
+    </div>
 
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a href="{{ url_for('routes.index') }}" class="navbar-item">
-                                Home
-                            </a>
-                            {% if current_user.is_authenticated %}
-                            <a href="{{ url_for('routes.profile') }}" class="navbar-item">
-                                Profile
-                            </a>
-                            {% endif %}
-                            {% if not current_user.is_authenticated %}
-                            <a href="{{ url_for('auth.login') }}" class="navbar-item">
-                                Login
-                            </a>
-                            <a href="{{ url_for('auth.signup') }}" class="navbar-item">
-                                Sign Up
-                            </a>
-                            {% endif %}
-                            {% if current_user.is_authenticated %}
-                            <a href="{{ url_for('auth.logout') }}" class="navbar-item">
-                                Logout
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-
-        <div class="hero-body">
-            <div class="container has-text-centered">
-               {% block content %}
-               {% endblock %}
+    <header class="header">
+        <div class="header__user">
+            <div class="header__avatar">
+                {% if current_user.is_authenticated and current_user.name %}
+                    {{ current_user.name[0] | upper }}
+                {% else %}
+                    S
+                {% endif %}
+            </div>
+            <div class="header__info">
+                <h2>My Home</h2>
+                <span>{{ current_user.members_count if current_user.members_count else '1' }} MEMBER</span>
             </div>
         </div>
-    </section>
+
+        <div class="header__nav">
+            <a href="{{ url_for('routes.index') }}" title="Home">
+                <svg class="header__nav-icon"><use xlink:href="#icon-home"></use></svg>
+            </a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('routes.devices') }}" title="Devices">
+                <svg class="header__nav-icon"><use xlink:href="#icon-devices"></use></svg>
+            </a>
+            <a href="{{ url_for('routes.mqtt_log') }}" title="Logs">
+                <svg class="header__nav-icon"><use xlink:href="#icon-shield"></use></svg>
+            </a>
+            <a href="{{ url_for('routes.profile') }}" title="Profile">
+                <svg class="header__nav-icon"><use xlink:href="#icon-user"></use></svg>
+            </a>
+            <a href="{{ url_for('auth.logout') }}" title="Logout">
+                <svg class="header__nav-icon"><use xlink:href="#icon-logout"></use></svg>
+            </a>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" title="Login">
+                <svg class="header__nav-icon"><use xlink:href="#icon-user"></use></svg>
+            </a>
+            {% endif %}
+            <button id="theme-toggle" class="theme-toggle" style="color: #fff; opacity: 0.8;" aria-label="Toggle theme">🌙</button>
+        </div>
+    </header>
+
+    <main class="app-main" role="main">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <script>
+    (function(){
+        const btn = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+
+        const safeGetStoredTheme = () => {
+            try {
+                return window.localStorage.getItem('theme');
+            } catch (_) {
+                return null;
+            }
+        };
+
+        const safeSetStoredTheme = (theme) => {
+            try {
+                window.localStorage.setItem('theme', theme);
+            } catch (_) {
+                // ignore storage failures; theme will still be applied for this session
+            }
+        };
+
+        const update = (theme) => {
+            if (!theme) return;
+            html.setAttribute('data-theme', theme);
+            safeSetStoredTheme(theme);
+            if (btn) {
+                btn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+            }
+        };
+
+        const saved = safeGetStoredTheme();
+        const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+        update(saved || prefers);
+
+        if (!btn) {
+            return;
+        }
+
+        btn.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            update(current === 'dark' ? 'light' : 'dark');
+        });
+    })();
+    </script>
 </body>
 
 </html>

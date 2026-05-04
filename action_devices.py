@@ -3,6 +3,7 @@
 
 import logging
 import requests
+import secrets
 from flask import current_app
 from notifications import mqtt
 
@@ -146,15 +147,24 @@ def rsync():
 
 
 def rquery(deviceId):
+    # Sanitize deviceId to prevent path traversal attacks
+    if not deviceId or '/' in deviceId or '\\' in deviceId or '..' in deviceId:
+        logger.error("Invalid deviceId: %s", deviceId)
+        return {"online": False}
     try:
         ref = reference()
-        return ref.child(deviceId).child('states').get()
+        res = ref.child(deviceId).child('states').get()
+        return res if res is not None else {"online": False}
     except Exception as e:
         logger.error("Error querying device %s: %s", deviceId, e)
         return {"online": False}
 
 
 def rexecute(deviceId, parameters):
+    # Sanitize deviceId to prevent path traversal attacks
+    if not deviceId or '/' in deviceId or '\\' in deviceId or '..' in deviceId:
+        logger.error("Invalid deviceId: %s", deviceId)
+        return parameters
     try:
         ref = reference()
         ref.child(deviceId).child('states').update(parameters)
@@ -184,7 +194,6 @@ def onQuery(body):
         for i in body['inputs']:
             for device in i['payload']['devices']:
                 deviceId = device['id']
-                logger.debug('DEVICE ID: %s', deviceId)
                 data = rquery(deviceId)
                 payload['devices'][deviceId] = data
         return payload
@@ -213,6 +222,7 @@ def onExecute(body):
                     for execution in command['execution']:
                         execCommand = execution['command']
                         params = execution['params']
+                        # First try to refactor
                         payload = commands(payload, deviceId, execCommand, params)
         return payload
     except Exception as e:
@@ -304,14 +314,11 @@ def actions(req):
 
 
 def request_sync(api_key, agent_user_id):
-    """This function does blah blah."""
     try:
         url = 'https://homegraph.googleapis.com/v1/devices:requestSync?key=' + api_key
         data = {"agentUserId": agent_user_id, "async": True}
 
         response = requests.post(url, json=data)
-
-        logger.debug('Requests Code: %s  Response Code: %s', requests.codes["ok"], response.status_code)
 
         return response.status_code == requests.codes['ok']
     except Exception as e:
@@ -324,8 +331,8 @@ def report_state():
         if not REPORTSTATE_AVAILABLE:
             logger.warning("ReportState module not available, skipping report_state")
             return "ReportState not available"
-        import random
-        n = random.randint(10**19, 10**20)
+
+        n = 10**19 + secrets.randbelow(9 * 10**19 + 1)
         report_state_file = {
             'requestId': str(n),
             'agentUserId': current_app.config['AGENT_USER_ID'],
@@ -338,4 +345,3 @@ def report_state():
     except Exception as e:
         logger.error("Error in report_state: %s", e)
         return f"Error: {e}"
-

@@ -1,22 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Authorization</title>
-</head>
-<body>
-  <p>Client: {{ client.client_id }}</p>
-  <p>User: {{ user.username }}</p>
-  <form action="/oauth/authorize" method="post">
-    <p>Allow access?</p>
-    <input type="hidden" name="client_id" value="{{ client.client_id }}">
-    <input type="hidden" name="scope" value="{{ scopes|join(' ') }}">
-    <input type="hidden" name="response_type" value="{{ response_type }}">
-    {% if state %}
-    <input type="hidden" name="state" value="{{ state }}">
-    {% endif %}
-    <input type="submit" name="confirm" value="yes">
-    <input type="submit" name="confirm" value="no">
-  </form>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<section class="auth-wrap">
+  <article class="auth-card text-center">
+    <div class="u-margin-bottom-2">
+        <div class="auth-icon-wrap">
+            <svg class="auth-icon"><use xlink:href="#icon-shield"></use></svg>
+        </div>
+        <h1 class="u-margin-bottom-1">Third-Party Access</h1>
+        <p class="u-opacity-6">An application is requesting access to your Smart Home.</p>
+    </div>
+
+    <div class="auth-client-info u-margin-bottom-2">
+        <div class="flex-column">
+            <div>
+                <span class="md-label">Requesting Client</span>
+                <p class="accent-text u-margin-top-1">{{ client.client_id }}</p>
+            </div>
+            <div>
+                <span class="md-label">Authenticated User</span>
+                <p class="u-margin-top-1">{{ user.username }}</p>
+            </div>
+        </div>
+    </div>
+
+    <form action="{{ url_for('routes.authorize') }}" method="post" class="auth-form">
+      <p class="u-margin-bottom-2">Allow this application to control your devices?</p>
+      
+      <input type="hidden" name="client_id" value="{{ client.client_id }}">
+      <input type="hidden" name="scope" value="{{ scopes|join(' ') }}">
+      <input type="hidden" name="response_type" value="{{ response_type }}">
+      {% if state %}
+      <input type="hidden" name="state" value="{{ state }}">
+      {% endif %}
+
+      <div class="grid-2">
+        <button class="md-button" type="submit" name="confirm" value="yes">Authorize Access</button>
+        <button class="md-button" type="submit" name="confirm" value="no" style="background: var(--bg-widget); color: var(--text-secondary);">Deny</button>
+      </div>
+    </form>
+  </article>
+</section>
+{% endblock %}

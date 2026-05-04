@@ -2,9 +2,9 @@
 # Code By DaTi_Co
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash
-from sqlalchemy import select
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, login_required
+from sqlalchemy import select
 from models import db, User
 
 
@@ -22,7 +22,7 @@ def login_post():
     password = request.form.get('password')
     remember = bool(request.form.get('remember'))
 
-    user = db.session.execute(select(User).filter_by(email=email)).scalar_one_or_none()
+    user = db.session.scalars(select(User).filter_by(email=email)).first()
 
     if not user or not check_password_hash(user.password, password):
         flash('Please check your login details and try again.')
@@ -44,11 +44,11 @@ def signup_post():
     name = request.form.get('name')
     password = request.form.get('password')
     # get user from database
-    user = db.session.execute(select(User).filter_by(email=email)).scalar_one_or_none()
+    user = db.session.scalars(select(User).filter_by(email=email)).first()
     if user:
         flash('This Mail is used by another Person')
         return redirect(url_for('auth.signup'))
-    # If no user found, create a new one with a strong password hash (default algorithm)
+    # If not User found Create new
     new_user = User(email=email, name=name,
                     password=generate_password_hash(password))
     db.session.add(new_user)
