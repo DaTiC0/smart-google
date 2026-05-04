@@ -2,7 +2,7 @@
 # Code By DaTi_Co
 
 import logging
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qsl, urlunparse
 from flask import Blueprint, current_app, request, jsonify, redirect, render_template, make_response, url_for
 from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2.rfc6749 import OAuth2Error
@@ -28,13 +28,20 @@ def _oauth_error_response(exc):
         if not redirect_uri:
             redirect_uri = client.get_default_redirect_uri()
         if redirect_uri and client.check_redirect_uri(redirect_uri):
-            params = {'error': exc.error}
-            if exc.description:
-                params['error_description'] = exc.description
-            if state:
-                params['state'] = state
-            separator = '&' if '?' in redirect_uri else '?'
-            return redirect(f"{redirect_uri}{separator}{urlencode(params)}")
+            parsed = urlparse(redirect_uri)
+            if parsed.scheme and parsed.netloc:
+                params = {'error': exc.error}
+                if exc.description:
+                    params['error_description'] = exc.description
+                if state:
+                    params['state'] = state
+
+                existing_query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                existing_query.update(params)
+                safe_redirect_uri = urlunparse(
+                    parsed._replace(query=urlencode(existing_query))
+                )
+                return redirect(safe_redirect_uri)
 
     status_code = getattr(exc, 'status_code', 400) or 400
     return jsonify(error=exc.error, error_description=exc.description), status_code
