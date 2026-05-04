@@ -165,11 +165,18 @@ def device_status(device_id):
 @login_required
 def mqtt_log():
     connected = is_mqtt_connected()
-    log_entries = get_mqtt_logs()
+    positive_statuses = {'Received', 'Connected', 'Clean disconnect'}
+    log_entries = [
+        {
+            **entry,
+            'status_class': 'status-pill--active' if entry.get('status') in positive_statuses else '',
+        }
+        for entry in get_mqtt_logs()
+    ]
     return render_template(
         'mqtt_log.html',
         broker_connected=connected,
-        tls_enabled=bool(current_app.config.get('MQTT_TLS_ENABLED', False)),
+        tls_enabled=current_app.config.get('MQTT_TLS_ENABLED', False),
         log_entries=log_entries,
     )
 

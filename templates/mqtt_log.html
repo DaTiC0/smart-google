@@ -51,7 +51,7 @@
                         <td><code>{{ entry.topic }}</code></td>
                         <td><code>{{ entry.payload }}</code></td>
                         <td>
-                            <span class="status-pill {{ 'status-pill--active' if entry.status in ['Received', 'Connected', 'Clean disconnect'] else '' }}" style="font-size: 0.7rem;">{{ entry.status }}</span>
+                            <span class="status-pill {{ entry.status_class }}" style="font-size: 0.7rem;">{{ entry.status }}</span>
                         </td>
                     </tr>
                     {% else %}
