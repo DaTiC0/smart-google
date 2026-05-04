@@ -441,6 +441,22 @@ class DeviceEndpointTests(unittest.TestCase):
         data = resp.get_json()
         self.assertIn('payload', data)
 
+    def test_smarthome_uses_agent_user_scope(self):
+        payload = {
+            'requestId': '1',
+            'agentUserId': '42',
+            'inputs': [{'intent': 'action.devices.SYNC', 'payload': {}}],
+        }
+
+        with patch('routes.actions', return_value={'devices': []}) as mock_actions:
+            resp = self.client.post('/smarthome', json=payload)
+
+        self.assertEqual(resp.status_code, 200)
+        mock_actions.assert_called_once()
+        _, kwargs = mock_actions.call_args
+        self.assertEqual(kwargs['user_id'], '42')
+        self.assertEqual(kwargs['agent_user_id'], '42')
+
 
 class ActionDevicesUnitTests(unittest.TestCase):
     def setUp(self):
@@ -449,9 +465,9 @@ class ActionDevicesUnitTests(unittest.TestCase):
     def test_onSync_and_helpers(self):
         with flask_app.app_context():
             from action_devices import onSync, onQuery, onExecute, request_sync
-            sync = onSync()
+            sync = onSync(user_id='1', agent_user_id='1')
             self.assertIn('agentUserId', sync)
-            q = onQuery({'inputs': [{'payload': {'devices': [{'id': 'nonexistent'}]}}]})
+            q = onQuery({'inputs': [{'payload': {'devices': [{'id': 'nonexistent'}]}}]}, user_id='1')
             self.assertIn('devices', q)
             exec_resp = onExecute({'inputs': [{'payload': {'devices': [{'id': 'nonexistent'}]},
                                                'commands': [{'execution': [{'command': 'action.devices.commands.OnOff',
@@ -459,3 +475,69 @@ class ActionDevicesUnitTests(unittest.TestCase):
             self.assertIn('commands', exec_resp)
             self.assertEqual(exec_resp['commands'][0]['status'], 'ERROR')
             self.assertFalse(request_sync('', ''))
+
+    def test_get_dashboard_devices_uses_live_state(self):
+        with flask_app.app_context():
+            from action_devices import get_dashboard_devices
+
+            fake_snapshot = {
+                'kitchen-light': {
+                    'type': 'action.devices.types.LIGHT',
+                    'name': {'name': 'Kitchen Light'},
+                    'states': {'online': True},
+                },
+                'garage-door': {
+                    'type': 'action.devices.types.DOOR',
+                    'name': {'name': 'Garage Door'},
+                    'states': {'online': False},
+                },
+            }
+
+            with patch('action_devices._get_scoped_snapshot', return_value=fake_snapshot):
+                devices = get_dashboard_devices(user_id='1')
+
+        self.assertEqual(len(devices), 2)
+        self.assertEqual(devices[0]['display_name'], 'Garage Door')
+        self.assertEqual(devices[0]['status'], 'Offline')
+        self.assertEqual(devices[0]['status_class'], '')
+        self.assertEqual(devices[1]['display_name'], 'Kitchen Light')
+        self.assertEqual(devices[1]['status'], 'Online')
+        self.assertEqual(devices[1]['status_class'], 'status-pill--active')
+
+    def test_devices_route_uses_dashboard_devices(self):
+        from routes import devices as devices_view
+
+        sample_devices = [
+            {
+                'id': 'kitchen-light',
+                'display_name': 'Kitchen Light',
+                'type': 'action.devices.types.LIGHT',
+                'type_label': 'Light',
+                'icon': 'light',
+                'status': 'Online',
+                'status_class': 'status-pill--active',
+            }
+        ]
+
+        with flask_app.test_request_context('/devices'), \
+             patch('routes.current_user', SimpleNamespace(id=1, is_authenticated=True)), \
+             patch('routes.get_dashboard_devices', return_value=sample_devices), \
+             patch('routes.render_template', return_value='ok') as render_mock:
+            response = devices_view.__wrapped__()
+
+        self.assertEqual(response, 'ok')
+        args, kwargs = render_mock.call_args
+        self.assertEqual(args[0], 'devices.html')
+        self.assertEqual(kwargs['devices'], sample_devices)
+
+    @staticmethod
+    def test_devices_route_passes_logged_in_user_scope():
+        from routes import devices as devices_view
+
+        with flask_app.test_request_context('/devices'), \
+             patch('routes.current_user', SimpleNamespace(id=77, is_authenticated=True)), \
+             patch('routes.get_dashboard_devices', return_value=[]) as get_devices_mock, \
+             patch('routes.render_template', return_value='ok'):
+            devices_view.__wrapped__()
+
+        get_devices_mock.assert_called_once_with(77)

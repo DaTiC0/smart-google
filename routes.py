@@ -7,7 +7,7 @@ from flask import Blueprint, current_app, request, jsonify, redirect, render_tem
 from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2.rfc6749 import OAuth2Error
 from flask_login import login_required, current_user
-from action_devices import onSync, report_state, request_sync, actions, rquery
+from action_devices import onSync, report_state, request_sync, actions, rquery, get_dashboard_devices
 from my_oauth import get_current_user, load_client, oauth, require_oauth
 from notifications import get_mqtt_logs, is_mqtt_connected
 
@@ -45,6 +45,31 @@ def _oauth_error_response(exc):
 
     status_code = getattr(exc, 'status_code', 400) or 400
     return jsonify(error=exc.error, error_description=exc.description), status_code
+
+
+def _resolve_smarthome_user_scope(req):
+    """Resolve user scope for smarthome intents.
+
+    Preference order:
+    1) request-level agentUserId
+    2) authenticated web session user id
+    3) configured AGENT_USER_ID fallback
+    """
+    payload = req.get('payload', {}) if isinstance(req.get('payload'), dict) else {}
+    agent_user_id = req.get('agentUserId') or payload.get('agentUserId')
+
+    if agent_user_id is not None:
+        agent_user = str(agent_user_id).strip()
+        if agent_user:
+            return agent_user, agent_user
+
+    if getattr(current_user, 'is_authenticated', False):
+        user_id = str(current_user.id)
+        return user_id, user_id
+
+    fallback = current_app.config.get('AGENT_USER_ID')
+    fallback_str = str(fallback).strip() if fallback is not None else ''
+    return (fallback_str or None), (fallback_str or 'test-user')
 
 
 @bp.route('/')
@@ -141,8 +166,7 @@ def ifttt():
 @login_required
 def devices():
     logger.debug("Retrieving devices for user: %s", current_user)
-    dev_req = onSync()
-    device_list = dev_req['devices']
+    device_list = get_dashboard_devices(current_user.id)
     logger.debug("Device list: %s", device_list)
     return render_template('devices.html', title='Smart-Home', devices=device_list)
 
@@ -151,13 +175,13 @@ def devices():
 @login_required
 def device_status(device_id):
     # Get specific device data
-    dev_req = onSync()
+    dev_req = onSync(user_id=current_user.id, agent_user_id=current_user.id)
     device = next((d for d in dev_req['devices'] if d['id'] == device_id), None)
     if not device:
         return redirect(url_for('routes.devices'))
 
     # Get current states
-    states = rquery(device_id)
+    states = rquery(device_id, user_id=current_user.id)
     return render_template('device_status.html', device=device, states=states)
 
 
@@ -179,10 +203,12 @@ def smarthome():
     if not req or 'requestId' not in req or 'inputs' not in req:
         logger.warning("Invalid smarthome request: missing required fields")
         return jsonify({'error': 'Invalid request format'}), 400
+
+    user_scope, agent_user_id = _resolve_smarthome_user_scope(req)
     logger.debug("Smart home request: %s", req.get('requestId', 'unknown'))
     result = {
         'requestId': req['requestId'],
-        'payload': actions(req),
+        'payload': actions(req, user_id=user_scope, agent_user_id=agent_user_id),
     }
     logger.debug("Smart home response: %s", result)
     return make_response(jsonify(result))
