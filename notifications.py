@@ -10,6 +10,16 @@ def is_mqtt_connected():
     return bool(getattr(mqtt, 'connected', False))
 
 
+@mqtt.on_connect()
+def handle_connect(_client, _userdata, flags, rc):
+    logger.info('Connected to MQTT broker; flags=%s, rc=%s', flags, rc)
+
+
+@mqtt.on_disconnect()
+def handle_disconnect(_client, _userdata, rc):
+    logger.warning('Disconnected from MQTT broker; rc=%s', rc)
+
+
 @mqtt.on_message()
 def handle_messages(_client, _userdata, message):
     logger.debug('Received message on topic %s: %s', message.topic, message.payload.decode())

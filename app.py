@@ -69,9 +69,16 @@ app.register_blueprint(auth, url_prefix='')
 
 # MQTT CONNECT
 try:
+    logger.info(
+        'Initializing MQTT broker at %s:%s (TLS=%s)',
+        app.config.get('MQTT_BROKER_URL'),
+        app.config.get('MQTT_BROKER_PORT'),
+        app.config.get('MQTT_TLS_ENABLED'),
+    )
     mqtt.init_app(app)
     mqtt.subscribe('+/notification')
     mqtt.subscribe('+/status')
+    logger.info('MQTT initialized; connected=%s', mqtt.connected)
 except Exception as e:
     logger.warning('MQTT initialization skipped: %s', e)
 
