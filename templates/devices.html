@@ -42,13 +42,13 @@
                     {% for device in devices %}
                     <tr>
                         <td class="accent-text">
-                            <svg class="device-type-icon"><use xlink:href="#icon-{{ device.type if device.type in ['light', 'heating', 'ac', 'camera', 'door', 'alarm', 'garage', 'garden'] else 'devices' }}"></use></svg>
-                            {{ device.name.name }}
+                            <svg class="device-type-icon"><use xlink:href="#icon-{{ device.icon }}"></use></svg>
+                            {{ device.display_name }}
                         </td>
                         <td class="u-opacity-6" style="font-family: monospace; font-size: 0.85rem;">{{ device.id }}</td>
-                        <td class="text-capitalize">{{ device.type }}</td>
+                        <td class="text-capitalize">{{ device.type_label }}</td>
                         <td>
-                            <span class="status-pill status-pill--active">Online</span>
+                            <span class="status-pill {{ device.status_class }}">{{ device.status }}</span>
                         </td>
                     </tr>
                     {% endfor %}
