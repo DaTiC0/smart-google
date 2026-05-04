@@ -376,7 +376,9 @@ def actions(req, user_id=None, agent_user_id=None):
                     if payload.get('commands') and len(payload['commands']) > 0 and len(payload['commands'][0]['ids']) > 0:
                         deviceId = payload['commands'][0]['ids'][0]
                         params = payload['commands'][0]['states']
-                        mqtt.publish(topic=str(deviceId) + '/' + 'notification',
+                        # Multi-tenant MQTT topic: {user_id}/{device_id}/notification
+                        mqtt_topic = f"{user_id}/{deviceId}/notification"
+                        mqtt.publish(topic=mqtt_topic,
                                      payload=str(params), qos=0)  # SENDING MQTT MESSAGE
                 except Exception as mqtt_error:
                     logger.warning("MQTT error: %s", mqtt_error)
@@ -405,7 +407,7 @@ def request_sync(api_key, agent_user_id):
         return False
 
 
-def report_state():
+def report_state(user_id=None):
     try:
         if not REPORTSTATE_AVAILABLE:
             logger.warning("ReportState module not available, skipping report_state")
@@ -414,8 +416,8 @@ def report_state():
         n = 10**19 + secrets.randbelow(9 * 10**19 + 1)
         report_state_file = {
             'requestId': str(n),
-            'agentUserId': current_app.config['AGENT_USER_ID'],
-            'payload': rstate(),
+            'agentUserId': user_id or current_app.config.get('AGENT_USER_ID', 'test-user'),
+            'payload': rstate(user_id),
         }
 
         state.main(report_state_file)

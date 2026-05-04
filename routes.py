@@ -63,6 +63,10 @@ def _resolve_smarthome_user_scope(req):
         if agent_user:
             return agent_user, agent_user
 
+    if getattr(current_token, 'user', None):
+        user_id = str(current_token.user.id)
+        return user_id, user_id
+
     if getattr(current_user, 'is_authenticated', False):
         user_id = str(current_user.id)
         return user_id, user_id
@@ -136,10 +140,10 @@ def me():
 
 
 @bp.route('/sync')
+@login_required
 def sync_devices():
-    request_sync(current_app.config['API_KEY'],
-                 current_app.config['AGENT_USER_ID'])
-    report_state()
+    request_sync(current_app.config['API_KEY'], str(current_user.id))
+    report_state(str(current_user.id))
 
     return "Sync request sent"
 
@@ -174,14 +178,15 @@ def devices():
 @bp.route('/device/<device_id>')
 @login_required
 def device_status(device_id):
+    user_id = str(current_user.id)
     # Get specific device data
-    dev_req = onSync(user_id=current_user.id, agent_user_id=current_user.id)
+    dev_req = onSync(user_id=user_id, agent_user_id=user_id)
     device = next((d for d in dev_req['devices'] if d['id'] == device_id), None)
     if not device:
         return redirect(url_for('routes.devices'))
 
     # Get current states
-    states = rquery(device_id, user_id=current_user.id)
+    states = rquery(device_id, user_id=user_id)
     return render_template('device_status.html', device=device, states=states)
 
 
@@ -189,15 +194,17 @@ def device_status(device_id):
 @login_required
 def mqtt_log():
     connected = is_mqtt_connected()
+    user_id = str(current_user.id)
     return render_template(
         'mqtt_log.html',
         broker_connected=connected,
         tls_enabled=bool(current_app.config.get('MQTT_TLS_ENABLED', False)),
-        log_entries=get_mqtt_logs(),
+        log_entries=get_mqtt_logs(user_id),
     )
 
 
 @bp.route('/smarthome', methods=['POST'])
+@require_oauth()
 def smarthome():
     req = request.get_json(silent=True, force=True)
     if not req or 'requestId' not in req or 'inputs' not in req:
@@ -205,10 +212,11 @@ def smarthome():
         return jsonify({'error': 'Invalid request format'}), 400
 
     user_scope, agent_user_id = _resolve_smarthome_user_scope(req)
-    logger.debug("Smart home request: %s", req.get('requestId', 'unknown'))
+    logger.debug("Smart home request from user %s: %s", user_scope, req.get('requestId', 'unknown'))
+    
     result = {
         'requestId': req['requestId'],
         'payload': actions(req, user_id=user_scope, agent_user_id=agent_user_id),
     }
-    logger.debug("Smart home response: %s", result)
+    logger.debug("Smart home response for user %s: %s", user_scope, result)
     return make_response(jsonify(result))
