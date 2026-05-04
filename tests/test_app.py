@@ -530,7 +530,8 @@ class ActionDevicesUnitTests(unittest.TestCase):
         self.assertEqual(args[0], 'devices.html')
         self.assertEqual(kwargs['devices'], sample_devices)
 
-    def test_devices_route_passes_logged_in_user_scope(self):
+    @staticmethod
+    def test_devices_route_passes_logged_in_user_scope():
         from routes import devices as devices_view
 
         with flask_app.test_request_context('/devices'), \
