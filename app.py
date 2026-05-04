@@ -18,10 +18,15 @@ from routes import bp
 logger = logging.getLogger(__name__)
 
 
+def _is_production_environment() -> bool:
+    """Return True when runtime environment is production-like."""
+    environment = os.getenv('APP_ENV', os.getenv('FLASK_ENV', 'development')).lower()
+    return environment in {'production', 'prod'}
+
+
 def _get_config_object() -> str:
     """Resolve config from explicit APP_ENV with FLASK_ENV fallback."""
-    environment = os.getenv('APP_ENV', os.getenv('FLASK_ENV', 'development')).lower()
-    if environment in {'production', 'prod'}:
+    if _is_production_environment():
         return 'config.ProductionConfig'
     return 'config.DevelopmentConfig'
 
@@ -52,7 +57,7 @@ def _init_firebase(flask_app: Flask) -> None:
 app = Flask(__name__, template_folder='templates')
 app.config.from_object(_get_config_object())
 
-if app.config.get('ENV') != 'production':
+if not _is_production_environment():
     # Authlib requires HTTPS by default; allow HTTP for local/dev/test only.
     os.environ.setdefault('AUTHLIB_INSECURE_TRANSPORT', '1')
 
@@ -128,22 +133,29 @@ def _ensure_password_column_capacity() -> None:
         return
 
     dialect = db.engine.dialect.name
-    if dialect == 'postgresql':
-        alter_sql = 'ALTER TABLE "user" ALTER COLUMN password TYPE VARCHAR(255)'
-    elif dialect in {'mysql', 'mariadb'}:
-        alter_sql = 'ALTER TABLE `user` MODIFY COLUMN password VARCHAR(255)'
-    else:
-        logger.warning(
+    alter_sql = _password_column_migration_sql(dialect)
+    if not alter_sql:
+        message = (
             'Detected legacy password column length=%s on unsupported dialect=%s; '
-            'manual migration to VARCHAR(255) required.',
-            current_length,
-            dialect,
+            'manual migration to VARCHAR(255) required.'
         )
+        if _is_production_environment():
+            raise RuntimeError(message % (current_length, dialect))
+        logger.warning(message, current_length, dialect)
         return
 
     logger.info('Expanding user.password column from %s to 255.', current_length)
     db.session.execute(text(alter_sql))
     db.session.commit()
+
+
+def _password_column_migration_sql(dialect: str):
+    """Return migration SQL for supported dialects, or None if unsupported."""
+    if dialect == 'postgresql':
+        return 'ALTER TABLE "user" ALTER COLUMN password TYPE VARCHAR(255)'
+    if dialect in {'mysql', 'mariadb'}:
+        return 'ALTER TABLE `user` MODIFY COLUMN password VARCHAR(255)'
+    return None
 
 
 @app.route('/uploads/<filename>')

@@ -4,6 +4,7 @@ import sys
 import os
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -13,6 +14,7 @@ os.environ['APP_ENV'] = 'development'
 
 from app import app as flask_app  # noqa: E402
 from app import allowed_file  # noqa: E402
+from app import _is_production_environment, _password_column_migration_sql  # noqa: E402
 from models import db, User, Client  # noqa: E402
 from sqlalchemy import select  # used in cleanup queries
 
@@ -85,6 +87,35 @@ class AllowedFileTest(unittest.TestCase):
         self.assertFalse(allowed_file(''))
         self.assertFalse(allowed_file('.'))
         self.assertFalse(allowed_file('.hidden'))
+
+
+class AppHardeningHelpersTest(unittest.TestCase):
+    def test_is_production_environment_true_for_production_values(self):
+        with patch.dict(os.environ, {'APP_ENV': 'production'}, clear=False):
+            self.assertTrue(_is_production_environment())
+        with patch.dict(os.environ, {'APP_ENV': 'prod'}, clear=False):
+            self.assertTrue(_is_production_environment())
+
+    def test_is_production_environment_false_for_development(self):
+        with patch.dict(os.environ, {'APP_ENV': 'development'}, clear=False):
+            self.assertFalse(_is_production_environment())
+
+    def test_password_column_migration_sql_for_supported_dialects(self):
+        self.assertEqual(
+            _password_column_migration_sql('postgresql'),
+            'ALTER TABLE "user" ALTER COLUMN password TYPE VARCHAR(255)',
+        )
+        self.assertEqual(
+            _password_column_migration_sql('mysql'),
+            'ALTER TABLE `user` MODIFY COLUMN password VARCHAR(255)',
+        )
+        self.assertEqual(
+            _password_column_migration_sql('mariadb'),
+            'ALTER TABLE `user` MODIFY COLUMN password VARCHAR(255)',
+        )
+
+    def test_password_column_migration_sql_for_unsupported_dialect(self):
+        self.assertIsNone(_password_column_migration_sql('sqlite'))
 
 
 class AuthTests(unittest.TestCase):
