@@ -78,11 +78,11 @@ class MqttRouteViewModelTest(unittest.TestCase):
             },
         ]
 
-        with flask_app.test_request_context('/mqtt'):
-            with patch('routes.is_mqtt_connected', return_value=True), \
-                 patch('routes.get_mqtt_logs', return_value=sample_logs), \
-                 patch('routes.render_template', return_value='ok') as render_mock:
-                response = routes.mqtt_log.__wrapped__()
+        with flask_app.test_request_context('/mqtt'), \
+             patch('routes.is_mqtt_connected', return_value=True), \
+             patch('routes.get_mqtt_logs', return_value=sample_logs), \
+             patch('routes.render_template', return_value='ok') as render_mock:
+            response = routes.mqtt_log.__wrapped__()
 
         self.assertEqual(response, 'ok')
         render_mock.assert_called_once()
