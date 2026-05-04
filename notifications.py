@@ -49,39 +49,34 @@ def is_mqtt_connected():
 
 @mqtt.on_connect()
 def handle_connect(_client, _userdata, flags, rc):
-    try:
-        if rc == 0:
-            logger.info('Connected to MQTT broker; flags=%s, rc=%s', flags, rc)
-            _append_mqtt_log('system', f'Connected (flags={flags}, rc={rc})', 'Connected')
-            return
+    if rc == 0:
+        logger.info('Connected to MQTT broker; flags=%s, rc=%s', flags, rc)
+        _append_mqtt_log('system', f'Connected (flags={flags}, rc={rc})', 'Connected')
+        return
 
-        logger.error('MQTT connection failed; flags=%s, rc=%s', flags, rc)
-        _append_mqtt_log('system', f'Connection failed (flags={flags}, rc={rc})', 'Connection failed')
-    except Exception:
-        logger.exception('Failed to process MQTT connect callback')
+    logger.error('MQTT connection failed; flags=%s, rc=%s', flags, rc)
+    _append_mqtt_log(
+        'system',
+        f'Connection failed (flags={flags}, rc={rc})',
+        'Connection failed',
+    )
 
 
 @mqtt.on_disconnect()
 def handle_disconnect(_client, _userdata, rc):
-    try:
-        if rc == 0:
-            logger.info('MQTT broker disconnected cleanly; rc=%s', rc)
-            _append_mqtt_log('system', f'Disconnected cleanly (rc={rc})', 'Clean disconnect')
-        else:
-            logger.warning('MQTT broker disconnected unexpectedly; rc=%s', rc)
-            _append_mqtt_log('system', f'Unexpected disconnect (rc={rc})', 'Disconnected')
-    except Exception:
-        logger.exception('Failed to process MQTT disconnect callback')
+    if rc == 0:
+        logger.info('MQTT broker disconnected cleanly; rc=%s', rc)
+        _append_mqtt_log('system', f'Disconnected cleanly (rc={rc})', 'Clean disconnect')
+    else:
+        logger.warning('MQTT broker disconnected unexpectedly; rc=%s', rc)
+        _append_mqtt_log('system', f'Unexpected disconnect (rc={rc})', 'Disconnected')
 
 
 @mqtt.on_message()
 def handle_messages(_client, _userdata, message):
-    try:
-        payload = _decode_payload(message.payload)
-        logger.debug('Received message on topic %s: %s', message.topic, payload)
-        _append_mqtt_log(message.topic, payload, 'Received')
-    except Exception:
-        logger.exception('Failed to process MQTT message callback')
+    payload = _decode_payload(message.payload)
+    logger.debug('Received message on topic %s: %s', message.topic, payload)
+    _append_mqtt_log(message.topic, payload, 'Received')
 
 
 @mqtt.on_publish()
