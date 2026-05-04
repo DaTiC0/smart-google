@@ -4,7 +4,6 @@ from collections import deque
 from datetime import datetime, timezone
 
 from flask_mqtt import Mqtt
-from flask import current_app
 
 logger = logging.getLogger(__name__)
 mqtt = Mqtt()
@@ -39,7 +38,7 @@ def get_mqtt_logs(user_id=None):
     """
     with mqtt_log_lock:
         logs = list(mqtt_log_entries)
-    
+
     if user_id:
         # Filter logs for specific user + system messages
         return [log for log in logs if log['user_id'] == user_id or log['user_id'] is None]
@@ -90,24 +89,24 @@ def handle_messages(_client, _userdata, message):
     payload = _decode_payload(message.payload)
     topic = message.topic
     logger.debug('Received message on topic %s: %s', topic, payload)
-    
+
     # Expected topic structure: {user_id}/{device_id}/{notification|status}
-    # Current supported topics: 
+    # Current supported topics:
     # {user_id}/{device_id}/notification
     # {user_id}/{device_id}/status
-    
+
     parts = topic.split('/')
     user_id = None
     if len(parts) >= 3:
         user_id = parts[0]
         device_id = parts[1]
         msg_type = parts[2]
-        
+
         # Try to update Firebase if it's a status message
         if msg_type == 'status':
             # Guard JSON decoding to avoid noisy errors when payloads are already decoded or non-JSON
             state_updates = None
-            
+
             if isinstance(payload, dict):
                 state_updates = payload
             elif isinstance(payload, str):
@@ -116,7 +115,7 @@ def handle_messages(_client, _userdata, message):
                     state_updates = json.loads(payload)
                 except (ValueError, TypeError):
                     logger.debug("Non-JSON status payload for %s/%s; skipping Firebase update", user_id, device_id)
-            
+
             if state_updates is not None:
                 try:
                     from action_devices import _get_user_device_states_ref
