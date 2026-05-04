@@ -11,6 +11,11 @@ mqtt = Mqtt()
 mqtt_log_lock = threading.Lock()
 mqtt_log_entries = deque(maxlen=100)
 
+# Statuses that represent a healthy/expected MQTT event.
+# `status_class` is derived from this set inside _append_mqtt_log so that
+# routes and templates never need to re-declare the mapping.
+POSITIVE_STATUSES = frozenset({'Connected', 'Received', 'Clean disconnect'})
+
 
 def _append_mqtt_log(topic, payload, status):
     """Store an MQTT monitor entry in-memory with newest entries first."""
@@ -19,6 +24,7 @@ def _append_mqtt_log(topic, payload, status):
         'topic': topic,
         'payload': payload,
         'status': status,
+        'status_class': 'status-pill--active' if status in POSITIVE_STATUSES else '',
     }
     with mqtt_log_lock:
         mqtt_log_entries.appendleft(entry)
@@ -38,7 +44,7 @@ def _decode_payload(payload):
     try:
         return payload.decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning('MQTT payload contained non-UTF8 bytes; storing hex view')
+        logger.debug('MQTT payload contained non-UTF8 bytes; storing hex view')
         return payload.hex()
 
 

@@ -63,18 +63,21 @@ class NotificationsHandlersTest(unittest.TestCase):
 
 class MqttRouteViewModelTest(unittest.TestCase):
     def test_mqtt_route_renders_dynamic_context(self):
+        # status_class is set by _append_mqtt_log; simulate what get_mqtt_logs returns.
         sample_logs = [
             {
                 'timestamp': '2026-05-04 10:00:00 UTC',
                 'topic': 'system',
                 'payload': 'Connected',
                 'status': 'Connected',
+                'status_class': 'status-pill--active',
             },
             {
                 'timestamp': '2026-05-04 10:01:00 UTC',
                 'topic': 'system',
                 'payload': 'Failed',
                 'status': 'Connection failed',
+                'status_class': '',
             },
         ]
 
