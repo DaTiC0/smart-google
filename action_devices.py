@@ -5,7 +5,6 @@ import json
 import logging
 import requests
 import secrets
-from flask import current_app
 from notifications import mqtt
 from firebase_utils import (
     _normalize_user_scope,
@@ -14,6 +13,9 @@ from firebase_utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Fallback identifier for cases where user scope cannot be determined
+UNKNOWN_USER_ID = "unknown"
 
 try:
     import ReportState as state
@@ -181,15 +183,14 @@ def rexecute(deviceId, parameters, user_id=None):
 def onSync(user_id=None, agent_user_id=None):
     try:
         resolved_user = _normalize_user_scope(user_id)
-        fallback = resolved_user or current_app.config.get('AGENT_USER_ID', 'test-user')
-        agent_user = str(agent_user_id if agent_user_id is not None else fallback)
+        agent_user = str(agent_user_id if agent_user_id is not None else (resolved_user or UNKNOWN_USER_ID))
         return {
             "agentUserId": agent_user,
             "devices": rsync(resolved_user)
         }
     except Exception as e:
         logger.error("Error in onSync: %s", e)
-        return {"agentUserId": current_app.config.get('AGENT_USER_ID', 'test-user'), "devices": []}
+        return {"agentUserId": UNKNOWN_USER_ID, "devices": []}
 
 
 def onQuery(body, user_id=None):
@@ -238,8 +239,7 @@ def onExecute(body, user_id=None):
 
 
 def commands(payload, deviceId, execCommand, params, user_id=None):
-    """ more clean code as was bedore.
-    dont remember how state ad parameters is used """
+    """Normalize and execute smart home commands on a specific device."""
     try:
         if execCommand == 'action.devices.commands.OnOff':
             if 'on' not in params:
@@ -336,7 +336,7 @@ def report_state(user_id=None):
         n = 10**19 + secrets.randbelow(9 * 10**19 + 1)
         report_state_file = {
             'requestId': str(n),
-            'agentUserId': user_id or current_app.config.get('AGENT_USER_ID', 'test-user'),
+            'agentUserId': user_id or UNKNOWN_USER_ID,
             'payload': rstate(user_id),
         }
 

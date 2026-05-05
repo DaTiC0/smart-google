@@ -6,7 +6,6 @@ from flask import Flask
 import os
 os.environ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 os.environ['APP_ENV'] = 'testing'
-os.environ['AGENT_USER_ID'] = 'test-fallback-user'
 
 from action_devices import onSync, actions
 from notifications import handle_messages, get_mqtt_logs, _append_mqtt_log
@@ -14,7 +13,6 @@ from notifications import handle_messages, get_mqtt_logs, _append_mqtt_log
 class MultiTenantTest(unittest.TestCase):
     def setUp(self):
         self.app = Flask(__name__)
-        self.app.config['AGENT_USER_ID'] = 'test-fallback-user'
         self.ctx = self.app.app_context()
         self.ctx.push()
 
@@ -118,6 +116,21 @@ class MultiTenantTest(unittest.TestCase):
         self.assertIn("1/d1/status", topics)
         self.assertIn("system", topics)
         self.assertNotIn("2/d2/status", topics)
+
+    @patch('firebase_utils.FIREBASE_AVAILABLE', False)
+    def test_on_sync_without_fallback_no_user(self):
+        """Verify onSync returns 'unknown' when no user is resolved."""
+        response = onSync(user_id=None, agent_user_id=None)
+        self.assertEqual(response['agentUserId'], "unknown")
+        self.assertEqual(response['devices'], [])
+
+    def test_smarthome_resolution_without_fallback_no_user(self):
+        """Verify _resolve_smarthome_user_scope returns (None, None) when no user is found."""
+        from routes import _resolve_smarthome_user_scope
+        req = {"requestId": "req1", "inputs": []}
+        user_scope, agent_user_id = _resolve_smarthome_user_scope(req)
+        self.assertIsNone(user_scope)
+        self.assertIsNone(agent_user_id)
 
 if __name__ == '__main__':
     unittest.main()

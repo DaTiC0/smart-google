@@ -43,7 +43,6 @@ Then, you need to export some environment variables that will be used by the app
 - `MQTT_PASSWORD`
 - `MQTT_TLS_ENABLED` (Boolean, e.g., 'True')
 - `API_KEY`
-- `AGENT_USER_ID` (Legacy fallback, now generally derived from user session)
 - `DATABASEURL` (Firebase Realtime Database URL)
 
 ## Features

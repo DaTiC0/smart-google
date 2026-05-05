@@ -53,7 +53,6 @@ def _resolve_smarthome_user_scope(req):
     Preference order:
     1) request-level agentUserId
     2) authenticated web session user id
-    3) configured AGENT_USER_ID fallback
     """
     payload = req.get('payload', {}) if isinstance(req.get('payload'), dict) else {}
     agent_user_id = req.get('agentUserId') or payload.get('agentUserId')
@@ -71,9 +70,7 @@ def _resolve_smarthome_user_scope(req):
         user_id = str(current_user.id)
         return user_id, user_id
 
-    fallback = current_app.config.get('AGENT_USER_ID')
-    fallback_str = str(fallback).strip() if fallback is not None else ''
-    return (fallback_str or None), (fallback_str or 'test-user')
+    return None, None
 
 
 @bp.route('/')
@@ -148,7 +145,7 @@ def handle_authorize():
 @require_oauth()
 def me():
     user = current_token.user
-    return jsonify(username=user.username)
+    return jsonify(email=user.email)
 
 
 @bp.route('/sync')

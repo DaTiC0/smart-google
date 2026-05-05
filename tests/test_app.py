@@ -201,7 +201,6 @@ class OAuthEndpointTests(unittest.TestCase):
     def _create_oauth_user_and_client():
         with flask_app.app_context():
             user = User(
-                username='oauth-user',
                 email='oauth@example.com',
                 name='OAuth User',
                 password='test-password',
@@ -304,7 +303,7 @@ class OAuthEndpointTests(unittest.TestCase):
         self.assertEqual(me_resp.status_code, 200)
         me_payload = me_resp.get_json()
         self.assertIsInstance(me_payload, dict)
-        self.assertEqual(me_payload.get('username'), 'oauth-user')
+        self.assertEqual(me_payload, {"email": "oauth@example.com"})
 
     def test_authorize_deny_consent_redirects_with_access_denied(self):
         user_id = self._create_oauth_user_and_client()

@@ -46,7 +46,6 @@ class Config:
     MQTT_TLS_ENABLED = environ.get('MQTT_TLS_ENABLED', 'False').lower() in ('1', 'true', 'yes', 'on')
     MQTT_TLS_VERSION = ssl.PROTOCOL_TLS_CLIENT if MQTT_TLS_ENABLED else None
     API_KEY = environ.get('API_KEY')
-    AGENT_USER_ID = environ.get('AGENT_USER_ID')
     DATABASEURL = environ.get('DATABASEURL')  # your Project database URL
     SERVICE_ACCOUNT_DATA = data
 
