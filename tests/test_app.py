@@ -130,8 +130,7 @@ class AppHardeningHelpersTest(unittest.TestCase):
     def test_password_column_migration_sql_for_unsupported_dialect(self):
         self.assertIsNone(_password_column_migration_sql('sqlite'))
 
-    @staticmethod
-    def test_ensure_password_column_capacity_unsupported_dialect_raises_in_production():
+    def test_ensure_password_column_capacity_unsupported_dialect_raises_in_production(self):
         mock_inspector = Mock()
         mock_inspector.get_table_names.return_value = ['user']
         mock_inspector.get_columns.return_value = [
@@ -142,15 +141,10 @@ class AppHardeningHelpersTest(unittest.TestCase):
                 patch('app.inspect', return_value=mock_inspector), \
                 patch.object(db.engine.dialect, 'name', 'unsupported_dialect'), \
                 patch.dict(os.environ, {'APP_ENV': 'production'}, clear=False):
-            try:
+            with self.assertRaises(RuntimeError):
                 _ensure_password_column_capacity()
-            except RuntimeError:
-                pass
-            else:
-                raise AssertionError('Expected RuntimeError for unsupported dialect in production')
 
-    @staticmethod
-    def test_ensure_password_column_capacity_unsupported_dialect_warns_in_non_production():
+    def test_ensure_password_column_capacity_unsupported_dialect_warns_in_non_production(self):
         mock_inspector = Mock()
         mock_inspector.get_table_names.return_value = ['user']
         mock_inspector.get_columns.return_value = [
@@ -163,7 +157,7 @@ class AppHardeningHelpersTest(unittest.TestCase):
                 patch.dict(os.environ, {'APP_ENV': 'development'}, clear=False), \
                 patch('app.logger.warning') as mock_warning:
             _ensure_password_column_capacity()
-            assert mock_warning.called
+            self.assertTrue(mock_warning.called)
 
 
 class AuthTests(unittest.TestCase):
@@ -566,8 +560,7 @@ class ActionDevicesUnitTests(unittest.TestCase):
         self.assertEqual(args[0], 'devices.html')
         self.assertEqual(kwargs['devices'], sample_devices)
 
-    @staticmethod
-    def test_devices_route_passes_logged_in_user_scope():
+    def test_devices_route_passes_logged_in_user_scope(self):
         from routes import devices as devices_view
 
         with flask_app.test_request_context('/devices'), \
