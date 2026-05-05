@@ -7,6 +7,11 @@ import requests
 import secrets
 from flask import current_app
 from notifications import mqtt
+from firebase_utils import (
+    _normalize_user_scope,
+    _get_user_device_states_ref,
+    reference,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,84 +22,6 @@ except ImportError:
     state = None
     REPORTSTATE_AVAILABLE = False
     logger.warning("ReportState module not available, some features may be disabled.")
-
-# Try to import firebase_admin, but provide fallback if not available
-try:
-    from firebase_admin import db
-    FIREBASE_AVAILABLE = True
-except ImportError:
-    FIREBASE_AVAILABLE = False
-    logger.warning("Firebase admin not available, using mock data for testing")
-
-# Mock data for testing when Firebase is not available
-MOCK_DEVICES = {
-    "test-light-1": {
-        "type": "action.devices.types.LIGHT",
-        "traits": ["action.devices.traits.OnOff", "action.devices.traits.Brightness"],
-        "name": {"name": "Test Light"},
-        "willReportState": True,
-        "attributes": {"colorModel": "rgb"},
-        "states": {"on": True, "brightness": 80, "online": True}
-    },
-    "test-switch-1": {
-        "type": "action.devices.types.SWITCH",
-        "traits": ["action.devices.traits.OnOff"],
-        "name": {"name": "Test Switch"},
-        "willReportState": True,
-        "states": {"on": False, "online": True}
-    }
-}
-
-
-class MockRef:
-    @staticmethod
-    def get():
-        return MOCK_DEVICES
-
-    @staticmethod
-    def child(path):
-        return MockChild(MOCK_DEVICES, path)
-
-
-class MockChild:
-    def __init__(self, data, path):
-        self.data = data
-        self.path = path
-
-    def child(self, child_path):
-        return MockChild(self.data, self.path + '/' + child_path)
-
-    def get(self):
-        keys = self.path.split('/')
-        current = self.data
-        for key in keys:
-            if isinstance(current, dict) and key in current:
-                current = current[key]
-            else:
-                return None
-        return current
-
-    def update(self, values):
-        keys = self.path.split('/')
-        current = self.data
-        for key in keys[:-1]:
-            if key not in current:
-                current[key] = {}
-            current = current[key]
-        if keys[-1] not in current:
-            current[keys[-1]] = {}
-        current[keys[-1]].update(values)
-        return current[keys[-1]]
-
-
-def _normalize_user_scope(user_id):
-    """Normalize user scope value used in Firebase path building."""
-    if user_id is None:
-        return None
-    user_value = str(user_id).strip()
-    if not user_value or '/' in user_value or '\\' in user_value or '..' in user_value:
-        return None
-    return user_value
 
 
 def _to_sync_device(device_id, raw_data):
@@ -122,20 +49,6 @@ def _build_sync_devices(snapshot):
     return devices
 
 
-# firebase initialisation problem was fixed?
-def reference(user_id=None):
-    if FIREBASE_AVAILABLE:
-        try:
-            user_scope = _normalize_user_scope(user_id)
-            if user_scope:
-                return db.reference(f'/users/{user_scope}/devices')
-            return db.reference('/devices')
-        except Exception as e:
-            # Firebase is installed but not initialized (e.g. missing credentials in dev)
-            logger.warning("Firebase not initialized, falling back to mock data: %s", e)
-    return MockRef()
-
-
 def _get_scoped_snapshot(user_id):
     """Get per-user device snapshot from scoped Firebase path."""
     user_scope = _normalize_user_scope(user_id)
@@ -146,10 +59,10 @@ def _get_scoped_snapshot(user_id):
 
 def _get_scoped_device_states(device_id, user_id):
     """Get device states from user-scoped Firebase path."""
-    user_scope = _normalize_user_scope(user_id)
-    if not user_scope:
+    ref = _get_user_device_states_ref(user_id, device_id)
+    if not ref:
         return None
-    return reference(user_scope).child(device_id).child('states').get()
+    return ref.get()
 
 
 def rstate(user_id=None):
@@ -250,15 +163,15 @@ def rquery(deviceId, user_id=None):
 
 def rexecute(deviceId, parameters, user_id=None):
     # Sanitize deviceId to prevent path traversal attacks
-    if not deviceId or '/' in deviceId or '\\' in deviceId or '..' in deviceId:
+    if not deviceId or '/' in str(deviceId) or '\\' in str(deviceId) or '..' in str(deviceId):
         logger.error("Invalid deviceId: %s", deviceId)
         return parameters
     try:
-        user_scope = _normalize_user_scope(user_id)
-        if not user_scope:
+        ref = _get_user_device_states_ref(user_id, deviceId)
+        if not ref:
             return parameters
-        reference(user_scope).child(deviceId).child('states').update(parameters)
-        updated = reference(user_scope).child(deviceId).child('states').get()
+        ref.update(parameters)
+        updated = ref.get()
         return updated if updated is not None else parameters
     except Exception as e:
         logger.error("Error executing on device %s: %s", deviceId, e)
@@ -268,7 +181,8 @@ def rexecute(deviceId, parameters, user_id=None):
 def onSync(user_id=None, agent_user_id=None):
     try:
         resolved_user = _normalize_user_scope(user_id)
-        agent_user = str(agent_user_id if agent_user_id is not None else (resolved_user or current_app.config.get('AGENT_USER_ID', 'test-user')))
+        fallback = resolved_user or current_app.config.get('AGENT_USER_ID', 'test-user')
+        agent_user = str(agent_user_id if agent_user_id is not None else fallback)
         return {
             "agentUserId": agent_user,
             "devices": rsync(resolved_user)
@@ -373,11 +287,19 @@ def actions(req, user_id=None, agent_user_id=None):
                 payload = onExecute(req, user_id=user_id)
                 # SEND TEST MQTT
                 try:
-                    if payload.get('commands') and len(payload['commands']) > 0 and len(payload['commands'][0]['ids']) > 0:
+                    if payload.get('commands') and payload['commands'] and payload['commands'][0]['ids']:
                         deviceId = payload['commands'][0]['ids'][0]
                         params = payload['commands'][0]['states']
-                        mqtt.publish(topic=str(deviceId) + '/' + 'notification',
-                                     payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+
+                        # Normalize user_id for MQTT topic to prevent injection
+                        safe_user = _normalize_user_scope(user_id)
+                        if safe_user:
+                            # Multi-tenant MQTT topic: {user_id}/{device_id}/notification
+                            mqtt_topic = f"{safe_user}/{deviceId}/notification"
+                            mqtt.publish(topic=mqtt_topic,
+                                         payload=str(params), qos=0)  # SENDING MQTT MESSAGE
+                        else:
+                            logger.warning("Skipping MQTT publish: invalid user scope %s", user_id)
                 except Exception as mqtt_error:
                     logger.warning("MQTT error: %s", mqtt_error)
             elif i['intent'] == "action.devices.DISCONNECT":
@@ -397,7 +319,7 @@ def request_sync(api_key, agent_user_id):
         url = 'https://homegraph.googleapis.com/v1/devices:requestSync?key=' + api_key
         data = {"agentUserId": agent_user_id, "async": True}
 
-        response = requests.post(url, json=data)
+        response = requests.post(url, json=data, timeout=10)
 
         return response.status_code == requests.codes['ok']
     except Exception as e:
@@ -405,7 +327,7 @@ def request_sync(api_key, agent_user_id):
         return False
 
 
-def report_state():
+def report_state(user_id=None):
     try:
         if not REPORTSTATE_AVAILABLE:
             logger.warning("ReportState module not available, skipping report_state")
@@ -414,8 +336,8 @@ def report_state():
         n = 10**19 + secrets.randbelow(9 * 10**19 + 1)
         report_state_file = {
             'requestId': str(n),
-            'agentUserId': current_app.config['AGENT_USER_ID'],
-            'payload': rstate(),
+            'agentUserId': user_id or current_app.config.get('AGENT_USER_ID', 'test-user'),
+            'payload': rstate(user_id),
         }
 
         state.main(report_state_file)

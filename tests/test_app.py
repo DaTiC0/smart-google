@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -130,8 +130,7 @@ class AppHardeningHelpersTest(unittest.TestCase):
     def test_password_column_migration_sql_for_unsupported_dialect(self):
         self.assertIsNone(_password_column_migration_sql('sqlite'))
 
-    @staticmethod
-    def test_ensure_password_column_capacity_unsupported_dialect_raises_in_production():
+    def test_ensure_password_column_capacity_unsupported_dialect_raises_in_production(self):
         mock_inspector = Mock()
         mock_inspector.get_table_names.return_value = ['user']
         mock_inspector.get_columns.return_value = [
@@ -141,16 +140,11 @@ class AppHardeningHelpersTest(unittest.TestCase):
         with flask_app.app_context(), \
                 patch('app.inspect', return_value=mock_inspector), \
                 patch.object(db.engine.dialect, 'name', 'unsupported_dialect'), \
-                patch.dict(os.environ, {'APP_ENV': 'production'}, clear=False):
-            try:
-                _ensure_password_column_capacity()
-            except RuntimeError:
-                pass
-            else:
-                raise AssertionError('Expected RuntimeError for unsupported dialect in production')
+                patch.dict(os.environ, {'APP_ENV': 'production'}, clear=False), \
+                self.assertRaises(RuntimeError):
+            _ensure_password_column_capacity()
 
-    @staticmethod
-    def test_ensure_password_column_capacity_unsupported_dialect_warns_in_non_production():
+    def test_ensure_password_column_capacity_unsupported_dialect_warns_in_non_production(self):
         mock_inspector = Mock()
         mock_inspector.get_table_names.return_value = ['user']
         mock_inspector.get_columns.return_value = [
@@ -163,7 +157,7 @@ class AppHardeningHelpersTest(unittest.TestCase):
                 patch.dict(os.environ, {'APP_ENV': 'development'}, clear=False), \
                 patch('app.logger.warning') as mock_warning:
             _ensure_password_column_capacity()
-            assert mock_warning.called
+            self.assertTrue(mock_warning.called)
 
 
 class AuthTests(unittest.TestCase):
@@ -436,7 +430,15 @@ class DeviceEndpointTests(unittest.TestCase):
 
     def test_smarthome_sync(self):
         payload = {'requestId': '1', 'inputs': [{'intent': 'action.devices.SYNC', 'payload': {}}]}
-        resp = self.client.post('/smarthome', json=payload)
+        
+        # Mock current_token.user.id because routes.py:smarthome uses it
+        mock_token = MagicMock()
+        mock_token.user.id = 1
+        
+        with patch('my_oauth.require_oauth.acquire_token'), \
+             patch('routes.current_token', mock_token):
+            resp = self.client.post('/smarthome', json=payload)
+        
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
         self.assertIn('payload', data)
@@ -448,14 +450,42 @@ class DeviceEndpointTests(unittest.TestCase):
             'inputs': [{'intent': 'action.devices.SYNC', 'payload': {}}],
         }
 
-        with patch('routes.actions', return_value={'devices': []}) as mock_actions:
+        mock_token = MagicMock()
+        mock_token.user.id = 1
+
+        with patch('routes.actions', return_value={'devices': []}) as mock_actions, \
+             patch('my_oauth.require_oauth.acquire_token'), \
+             patch('routes.current_token', mock_token):
             resp = self.client.post('/smarthome', json=payload)
 
         self.assertEqual(resp.status_code, 200)
         mock_actions.assert_called_once()
         _, kwargs = mock_actions.call_args
+        # user_id should be extracted from request-level agentUserId (42) as it takes precedence
         self.assertEqual(kwargs['user_id'], '42')
         self.assertEqual(kwargs['agent_user_id'], '42')
+
+    def test_smarthome_fallback_to_token_user_id(self):
+        # Test fallback when agentUserId is omitted from payload
+        payload = {
+            'requestId': '2',
+            'inputs': [{'intent': 'action.devices.SYNC', 'payload': {}}],
+        }
+
+        mock_token = MagicMock()
+        mock_token.user.id = 99
+
+        with patch('routes.actions', return_value={'devices': []}) as mock_actions, \
+             patch('my_oauth.require_oauth.acquire_token'), \
+             patch('routes.current_token', mock_token):
+            resp = self.client.post('/smarthome', json=payload)
+
+        self.assertEqual(resp.status_code, 200)
+        mock_actions.assert_called_once()
+        _, kwargs = mock_actions.call_args
+        # user_id should fall back to current_token.user.id (99)
+        self.assertEqual(kwargs['user_id'], '99')
+        self.assertEqual(kwargs['agent_user_id'], '99')
 
 
 class ActionDevicesUnitTests(unittest.TestCase):
@@ -477,24 +507,21 @@ class ActionDevicesUnitTests(unittest.TestCase):
             self.assertFalse(request_sync('', ''))
 
     def test_get_dashboard_devices_uses_live_state(self):
-        with flask_app.app_context():
+        with flask_app.app_context(), \
+             patch('action_devices._get_scoped_snapshot', return_value={
+                 'kitchen-light': {
+                     'type': 'action.devices.types.LIGHT',
+                     'name': {'name': 'Kitchen Light'},
+                     'states': {'online': True},
+                 },
+                 'garage-door': {
+                     'type': 'action.devices.types.DOOR',
+                     'name': {'name': 'Garage Door'},
+                     'states': {'online': False},
+                 },
+             }):
             from action_devices import get_dashboard_devices
-
-            fake_snapshot = {
-                'kitchen-light': {
-                    'type': 'action.devices.types.LIGHT',
-                    'name': {'name': 'Kitchen Light'},
-                    'states': {'online': True},
-                },
-                'garage-door': {
-                    'type': 'action.devices.types.DOOR',
-                    'name': {'name': 'Garage Door'},
-                    'states': {'online': False},
-                },
-            }
-
-            with patch('action_devices._get_scoped_snapshot', return_value=fake_snapshot):
-                devices = get_dashboard_devices(user_id='1')
+            devices = get_dashboard_devices(user_id='1')
 
         self.assertEqual(len(devices), 2)
         self.assertEqual(devices[0]['display_name'], 'Garage Door')
@@ -530,8 +557,7 @@ class ActionDevicesUnitTests(unittest.TestCase):
         self.assertEqual(args[0], 'devices.html')
         self.assertEqual(kwargs['devices'], sample_devices)
 
-    @staticmethod
-    def test_devices_route_passes_logged_in_user_scope():
+    def test_devices_route_passes_logged_in_user_scope(self):
         from routes import devices as devices_view
 
         with flask_app.test_request_context('/devices'), \
@@ -540,4 +566,5 @@ class ActionDevicesUnitTests(unittest.TestCase):
              patch('routes.render_template', return_value='ok'):
             devices_view.__wrapped__()
 
-        get_devices_mock.assert_called_once_with(77)
+        self.assertEqual(get_devices_mock.call_count, 1)
+        self.assertEqual(get_devices_mock.call_args[0][0], 77)

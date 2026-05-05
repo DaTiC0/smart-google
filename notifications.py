@@ -1,15 +1,17 @@
+import json
 import logging
 import threading
 from collections import deque
 from datetime import datetime, timezone
 
 from flask_mqtt import Mqtt
+from firebase_utils import _get_user_device_states_ref
 
 logger = logging.getLogger(__name__)
 mqtt = Mqtt()
 
 mqtt_log_lock = threading.Lock()
-mqtt_log_entries = deque(maxlen=100)
+mqtt_log_entries = deque(maxlen=200)
 
 # Statuses that represent a healthy/expected MQTT event.
 # `status_class` is derived from this set inside _append_mqtt_log so that
@@ -17,7 +19,7 @@ mqtt_log_entries = deque(maxlen=100)
 POSITIVE_STATUSES = frozenset({'Connected', 'Received', 'Clean disconnect'})
 
 
-def _append_mqtt_log(topic, payload, status):
+def _append_mqtt_log(topic, payload, status, user_id=None):
     """Store an MQTT monitor entry in-memory with newest entries first."""
     entry = {
         'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'),
@@ -25,18 +27,24 @@ def _append_mqtt_log(topic, payload, status):
         'payload': payload,
         'status': status,
         'status_class': 'status-pill--active' if status in POSITIVE_STATUSES else '',
+        'user_id': user_id
     }
     with mqtt_log_lock:
         mqtt_log_entries.appendleft(entry)
 
 
-def get_mqtt_logs():
-    """Return a snapshot of MQTT monitor entries.
+def get_mqtt_logs(user_id=None):
+    """Return a snapshot of MQTT monitor entries filtered by user_id if provided.
 
     A lock is used to prevent concurrent deque mutations while copying.
     """
     with mqtt_log_lock:
-        return list(mqtt_log_entries)
+        logs = list(mqtt_log_entries)
+
+    if user_id:
+        # Filter logs for specific user + system messages
+        return [log for log in logs if log['user_id'] == user_id or log['user_id'] is None]
+    return logs
 
 
 def _decode_payload(payload):
@@ -81,8 +89,44 @@ def handle_disconnect(_client, _userdata, rc):
 @mqtt.on_message()
 def handle_messages(_client, _userdata, message):
     payload = _decode_payload(message.payload)
-    logger.debug('Received message on topic %s: %s', message.topic, payload)
-    _append_mqtt_log(message.topic, payload, 'Received')
+    topic = message.topic
+    logger.debug('Received message on topic %s: %s', topic, payload)
+
+    # Expected topic structure: {user_id}/{device_id}/{notification|status}
+    # Current supported topics:
+    # {user_id}/{device_id}/notification
+    # {user_id}/{device_id}/status
+
+    parts = topic.split('/')
+    user_id = None
+    if len(parts) >= 3:
+        user_id = parts[0]
+        device_id = parts[1]
+        msg_type = parts[2]
+
+        # Try to update Firebase if it's a status message
+        if msg_type == 'status':
+            # Guard JSON decoding to avoid noisy errors when payloads are already decoded or non-JSON
+            state_updates = None
+
+            if isinstance(payload, dict):
+                state_updates = payload
+            elif isinstance(payload, str):
+                try:
+                    state_updates = json.loads(payload)
+                except (ValueError, TypeError):
+                    logger.debug("Non-JSON status payload for %s/%s; skipping Firebase update", user_id, device_id)
+
+            if state_updates is not None:
+                try:
+                    ref = _get_user_device_states_ref(user_id, device_id)
+                    if ref:
+                        ref.update(state_updates)
+                        logger.debug("Updated Firebase status for %s/%s", user_id, device_id)
+                except Exception as e:
+                    logger.error("Failed to update Firebase from MQTT: %s", e)
+
+    _append_mqtt_log(topic, payload, 'Received', user_id=user_id)
 
 
 @mqtt.on_publish()

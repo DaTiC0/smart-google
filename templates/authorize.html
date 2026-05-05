@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <form action="{{ url_for('routes.authorize') }}" method="post" class="auth-form">
+    <form action="{{ url_for('routes.handle_authorize') }}" method="post" class="auth-form">
       <p class="u-margin-bottom-2">Allow this application to control your devices?</p>
       
       <input type="hidden" name="client_id" value="{{ client.client_id }}">
