@@ -103,7 +103,7 @@ def access_token():
     return oauth.create_token_response()
 
 
-@bp.route('/oauth/authorize', methods=['GET', 'POST'])
+@bp.route('/oauth/authorize', methods=['GET'])
 def authorize():
     user = get_current_user()
     if not user:
@@ -115,17 +115,29 @@ def authorize():
         logger.exception("OAuth consent grant error: %s", exc)
         return _oauth_error_response(exc)
 
-    if request.method == 'GET':
-        request_payload = getattr(grant.request, 'payload', grant.request)
-        scope = getattr(request_payload, 'scope', '') or ''
-        return render_template(
-            'authorize.html',
-            client=grant.client,
-            user=user,
-            scopes=scope.split(),
-            response_type=getattr(request_payload, 'response_type', None),
-            state=getattr(request_payload, 'state', None),
-        )
+    request_payload = getattr(grant.request, 'payload', grant.request)
+    scope = getattr(request_payload, 'scope', '') or ''
+    return render_template(
+        'authorize.html',
+        client=grant.client,
+        user=user,
+        scopes=scope.split(),
+        response_type=getattr(request_payload, 'response_type', None),
+        state=getattr(request_payload, 'state', None),
+    )
+
+
+@bp.route('/oauth/authorize', methods=['POST'])
+def handle_authorize():
+    user = get_current_user()
+    if not user:
+        return redirect('/')
+
+    try:
+        grant = oauth.get_consent_grant(end_user=user)
+    except OAuth2Error as exc:
+        logger.exception("OAuth consent grant error: %s", exc)
+        return _oauth_error_response(exc)
 
     confirm = request.form.get('confirm', 'no')
     grant_user = user if confirm == 'yes' else None
