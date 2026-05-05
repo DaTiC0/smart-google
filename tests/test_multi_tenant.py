@@ -22,8 +22,8 @@ class MultiTenantTest(unittest.TestCase):
     def tearDown(self):
         self.ctx.pop()
 
-    @patch('action_devices.db')
-    @patch('action_devices.FIREBASE_AVAILABLE', True)
+    @patch('firebase_utils.db')
+    @patch('firebase_utils.FIREBASE_AVAILABLE', True)
     def test_on_sync_scoped_path(self, mock_db):
         # Mock Firebase response for user 123
         mock_ref = MagicMock()
@@ -42,8 +42,8 @@ class MultiTenantTest(unittest.TestCase):
         self.assertEqual(response['devices'][0]['id'], "device1")
 
     @patch('action_devices.mqtt')
-    @patch('action_devices.db')
-    @patch('action_devices.FIREBASE_AVAILABLE', True)
+    @patch('firebase_utils.db')
+    @patch('firebase_utils.FIREBASE_AVAILABLE', True)
     def test_on_execute_mqtt_topic(self, mock_db, mock_mqtt):
         # Mock request for user 456
         req = {
@@ -75,8 +75,8 @@ class MultiTenantTest(unittest.TestCase):
         call_args = mock_mqtt.publish.call_args
         self.assertEqual(call_args.kwargs['topic'], expected_topic)
 
-    @patch('action_devices.db')
-    @patch('action_devices.FIREBASE_AVAILABLE', True)
+    @patch('firebase_utils.db')
+    @patch('firebase_utils.FIREBASE_AVAILABLE', True)
     def test_mqtt_status_update_firebase_path(self, mock_db):
         # Mock MQTT message: user 789 reports status for lamp1
         mock_message = MagicMock()
