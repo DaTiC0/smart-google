@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from flask import Flask
-import json
 
 # Set environment variables for testing
 import os
@@ -9,7 +8,7 @@ os.environ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 os.environ['APP_ENV'] = 'testing'
 os.environ['AGENT_USER_ID'] = 'test-fallback-user'
 
-from action_devices import onSync, actions, rquery
+from action_devices import onSync, actions
 from notifications import handle_messages, get_mqtt_logs, _append_mqtt_log
 
 class MultiTenantTest(unittest.TestCase):
