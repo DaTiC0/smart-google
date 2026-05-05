@@ -576,4 +576,5 @@ class ActionDevicesUnitTests(unittest.TestCase):
              patch('routes.render_template', return_value='ok'):
             devices_view.__wrapped__()
 
-        get_devices_mock.assert_called_once_with(77)
+        self.assertEqual(get_devices_mock.call_count, 1)
+        self.assertEqual(get_devices_mock.call_args[0][0], 77)
