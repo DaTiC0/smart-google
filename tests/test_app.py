@@ -303,7 +303,7 @@ class OAuthEndpointTests(unittest.TestCase):
         self.assertEqual(me_resp.status_code, 200)
         me_payload = me_resp.get_json()
         self.assertIsInstance(me_payload, dict)
-        self.assertEqual(me_payload.get('email'), 'oauth@example.com')
+        self.assertEqual(me_payload, {"email": "oauth@example.com"})
 
     def test_authorize_deny_consent_redirects_with_access_denied(self):
         user_id = self._create_oauth_user_and_client()
