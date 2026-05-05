@@ -140,9 +140,9 @@ class AppHardeningHelpersTest(unittest.TestCase):
         with flask_app.app_context(), \
                 patch('app.inspect', return_value=mock_inspector), \
                 patch.object(db.engine.dialect, 'name', 'unsupported_dialect'), \
-                patch.dict(os.environ, {'APP_ENV': 'production'}, clear=False):
-            with self.assertRaises(RuntimeError):
-                _ensure_password_column_capacity()
+                patch.dict(os.environ, {'APP_ENV': 'production'}, clear=False), \
+                self.assertRaises(RuntimeError):
+            _ensure_password_column_capacity()
 
     def test_ensure_password_column_capacity_unsupported_dialect_warns_in_non_production(self):
         mock_inspector = Mock()
@@ -507,24 +507,21 @@ class ActionDevicesUnitTests(unittest.TestCase):
             self.assertFalse(request_sync('', ''))
 
     def test_get_dashboard_devices_uses_live_state(self):
-        with flask_app.app_context():
+        with flask_app.app_context(), \
+             patch('action_devices._get_scoped_snapshot', return_value={
+                 'kitchen-light': {
+                     'type': 'action.devices.types.LIGHT',
+                     'name': {'name': 'Kitchen Light'},
+                     'states': {'online': True},
+                 },
+                 'garage-door': {
+                     'type': 'action.devices.types.DOOR',
+                     'name': {'name': 'Garage Door'},
+                     'states': {'online': False},
+                 },
+             }):
             from action_devices import get_dashboard_devices
-
-            fake_snapshot = {
-                'kitchen-light': {
-                    'type': 'action.devices.types.LIGHT',
-                    'name': {'name': 'Kitchen Light'},
-                    'states': {'online': True},
-                },
-                'garage-door': {
-                    'type': 'action.devices.types.DOOR',
-                    'name': {'name': 'Garage Door'},
-                    'states': {'online': False},
-                },
-            }
-
-            with patch('action_devices._get_scoped_snapshot', return_value=fake_snapshot):
-                devices = get_dashboard_devices(user_id='1')
+            devices = get_dashboard_devices(user_id='1')
 
         self.assertEqual(len(devices), 2)
         self.assertEqual(devices[0]['display_name'], 'Garage Door')
