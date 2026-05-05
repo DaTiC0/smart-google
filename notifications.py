@@ -1,9 +1,11 @@
+import json
 import logging
 import threading
 from collections import deque
 from datetime import datetime, timezone
 
 from flask_mqtt import Mqtt
+from firebase_utils import _get_user_device_states_ref
 
 logger = logging.getLogger(__name__)
 mqtt = Mqtt()
@@ -111,14 +113,12 @@ def handle_messages(_client, _userdata, message):
                 state_updates = payload
             elif isinstance(payload, str):
                 try:
-                    import json
                     state_updates = json.loads(payload)
                 except (ValueError, TypeError):
                     logger.debug("Non-JSON status payload for %s/%s; skipping Firebase update", user_id, device_id)
 
             if state_updates is not None:
                 try:
-                    from action_devices import _get_user_device_states_ref
                     ref = _get_user_device_states_ref(user_id, device_id)
                     if ref:
                         ref.update(state_updates)
