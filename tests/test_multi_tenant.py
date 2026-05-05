@@ -6,7 +6,6 @@ from flask import Flask
 import os
 os.environ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 os.environ['APP_ENV'] = 'testing'
-os.environ['AGENT_USER_ID'] = 'test-fallback-user'
 
 from action_devices import onSync, actions
 from notifications import handle_messages, get_mqtt_logs, _append_mqtt_log
@@ -14,7 +13,6 @@ from notifications import handle_messages, get_mqtt_logs, _append_mqtt_log
 class MultiTenantTest(unittest.TestCase):
     def setUp(self):
         self.app = Flask(__name__)
-        self.app.config['AGENT_USER_ID'] = 'test-fallback-user'
         self.ctx = self.app.app_context()
         self.ctx.push()
 

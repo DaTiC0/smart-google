@@ -62,7 +62,6 @@ if not _is_production_environment():
     os.environ.setdefault('AUTHLIB_INSECURE_TRANSPORT', '1')
 
 logger.info('ENV is set to: %s', app.config.get('ENV'))
-logger.info('Agent USER.ID: %s', app.config.get('AGENT_USER_ID'))
 
 app.register_blueprint(bp, url_prefix='')
 app.register_blueprint(auth, url_prefix='')
@@ -79,9 +78,6 @@ try:
     # New multi-tenant topic structure: {user_id}/{device_id}/{notification|status}
     mqtt.subscribe('+/+/notification')
     mqtt.subscribe('+/+/status')
-    # Keep legacy subscriptions for backward compatibility during migration
-    mqtt.subscribe('+/notification')
-    mqtt.subscribe('+/status')
     logger.info('MQTT initialized; connection lifecycle will be reported by on_connect/on_disconnect callbacks')
 except Exception as e:
     logger.warning('MQTT initialization skipped: %s', e)
