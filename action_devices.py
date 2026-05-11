@@ -73,16 +73,21 @@ def rstate(user_id=None):
         if not devices_data:
             return {"devices": {"states": {}}}
 
-        devices = list(devices_data.keys())
         payload = {
             "devices": {
                 "states": {}
             }
         }
-        for device in devices:
+        for device, raw_data in devices_data.items():
             device = str(device)
             logger.debug('Getting Device status from: %s', device)
-            state_data = rquery(device, user_id=user_id)
+
+            # Use pre-fetched state if available in snapshot, else fallback
+            if isinstance(raw_data, dict) and 'states' in raw_data:
+                state_data = raw_data['states']
+            else:
+                state_data = rquery(device, user_id=user_id)
+
             if state_data:
                 payload['devices']['states'][device] = state_data
             logger.debug('Device state: %s', state_data)
@@ -199,10 +204,24 @@ def onQuery(body, user_id=None):
         payload = {
             "devices": {},
         }
+
+        # Optimize: bulk fetch device states to avoid N+1 queries
+        devices_data = _get_scoped_snapshot(user_id) or {}
+
         for i in body['inputs']:
             for device in i['payload']['devices']:
                 deviceId = device['id']
-                data = rquery(deviceId, user_id=user_id)
+
+                # Try getting from cache first
+                data = None
+                raw_data = devices_data.get(deviceId)
+                if isinstance(raw_data, dict) and 'states' in raw_data:
+                    data = raw_data['states']
+
+                # Fallback to single fetch and validation logic in rquery
+                if data is None:
+                    data = rquery(deviceId, user_id=user_id)
+
                 payload['devices'][deviceId] = data
         return payload
     except Exception as e:
