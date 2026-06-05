@@ -81,12 +81,6 @@ class MultiTenantTest(unittest.TestCase):
         mock_message.payload = b'{"on": false, "online": true}'
 
         # Mock reference chain
-        mock_user_ref = MagicMock()
-        mock_device_ref = MagicMock()
-        mock_states_ref = MagicMock()
-        
-
-
 
 
         # Call handle_messages
@@ -94,7 +88,6 @@ class MultiTenantTest(unittest.TestCase):
 
         # Verify Firebase update path is scoped correctly
         mock_reference.assert_called_with('789', 'lamp1')
-
 
         mock_reference.return_value.update.assert_called_with({"on": False, "online": True})
 
