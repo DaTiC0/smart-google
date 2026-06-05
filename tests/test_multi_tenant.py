@@ -19,12 +19,12 @@ class MultiTenantTest(unittest.TestCase):
     def tearDown(self):
         self.ctx.pop()
 
-    @patch('firebase_utils.db')
+    @patch('action_devices.reference')
     @patch('firebase_utils.FIREBASE_AVAILABLE', True)
-    def test_on_sync_scoped_path(self, mock_db):
+    def test_on_sync_scoped_path(self, mock_reference):
         # Mock Firebase response for user 123
         mock_ref = MagicMock()
-        mock_db.reference.return_value = mock_ref
+        mock_reference.return_value = mock_ref
         mock_ref.get.return_value = {
             "device1": {"name": {"name": "Light 1"}, "type": "light"}
         }
@@ -33,15 +33,15 @@ class MultiTenantTest(unittest.TestCase):
         response = onSync(user_id="123")
 
         # Verify correct Firebase path was hit
-        mock_db.reference.assert_called_with('/users/123/devices')
+        mock_reference.assert_called_with('123')
         self.assertEqual(response['agentUserId'], "123")
         self.assertEqual(len(response['devices']), 1)
         self.assertEqual(response['devices'][0]['id'], "device1")
 
     @patch('action_devices.mqtt')
-    @patch('firebase_utils.db')
+    @patch('action_devices.reference')
     @patch('firebase_utils.FIREBASE_AVAILABLE', True)
-    def test_on_execute_mqtt_topic(self, mock_db, mock_mqtt):
+    def test_on_execute_mqtt_topic(self, mock_reference, mock_mqtt):
         # Mock request for user 456
         req = {
             "requestId": "req1",
@@ -61,7 +61,7 @@ class MultiTenantTest(unittest.TestCase):
 
         # Mock Firebase update
         mock_ref = MagicMock()
-        mock_db.reference.return_value = mock_ref
+        mock_reference.return_value = mock_ref
 
         # Call actions
         actions(req, user_id="456")
@@ -72,9 +72,9 @@ class MultiTenantTest(unittest.TestCase):
         call_args = mock_mqtt.publish.call_args
         self.assertEqual(call_args.kwargs['topic'], expected_topic)
 
-    @patch('firebase_utils.db')
+    @patch('notifications._get_user_device_states_ref')
     @patch('firebase_utils.FIREBASE_AVAILABLE', True)
-    def test_mqtt_status_update_firebase_path(self, mock_db):
+    def test_mqtt_status_update_firebase_path(self, mock_reference):
         # Mock MQTT message: user 789 reports status for lamp1
         mock_message = MagicMock()
         mock_message.topic = "789/lamp1/status"
@@ -85,18 +85,18 @@ class MultiTenantTest(unittest.TestCase):
         mock_device_ref = MagicMock()
         mock_states_ref = MagicMock()
         
-        mock_db.reference.return_value = mock_user_ref
-        mock_user_ref.child.return_value = mock_device_ref
-        mock_device_ref.child.return_value = mock_states_ref
+
+
+
 
         # Call handle_messages
         handle_messages(None, None, mock_message)
 
         # Verify Firebase update path is scoped correctly
-        mock_db.reference.assert_called_with('/users/789/devices')
-        mock_user_ref.child.assert_called_with('lamp1')
-        mock_device_ref.child.assert_called_with('states')
-        mock_states_ref.update.assert_called_with({"on": False, "online": True})
+        mock_reference.assert_called_with('789', 'lamp1')
+
+
+        mock_reference.return_value.update.assert_called_with({"on": False, "online": True})
 
     def test_mqtt_log_filtering(self):
         # Clear logs (since they are in-memory deque)
