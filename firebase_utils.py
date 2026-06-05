@@ -93,7 +93,7 @@ def reference(user_id=None):
             if user_scope:
                 return db.reference(f'/users/{user_scope}/devices')
             return db.reference('/devices')
-        except Exception as e:
+        except ValueError as e:
             # Firebase is installed but not initialized (e.g. missing credentials in dev)
             logger.warning("Firebase not initialized, falling back to mock data: %s", e)
     return MockRef()
