@@ -1,6 +1,5 @@
 import unittest
 import sys
-import logging
 from unittest.mock import MagicMock, patch
 
 # Setup mocks for firebase_admin before importing firebase_utils
