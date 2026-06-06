@@ -8,7 +8,7 @@ from authlib.oauth2.rfc6749 import grants
 from authlib.oauth2.rfc6750 import BearerTokenValidator
 from flask import session
 from flask_login import current_user
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from models import db
 from models import Client, Token, Grant, User
 
@@ -51,14 +51,12 @@ def load_client(client_id):
 def save_token(token_data, request):
     logger.debug("token setter")
     # make sure that every client has only one token connected to a user
-    existing_tokens = db.session.execute(
-        select(Token).filter_by(
+    db.session.execute(
+        delete(Token).filter_by(
             client_id=request.client.client_id,
             user_id=request.user.id,
         )
-    ).scalars()
-    for t in existing_tokens:
-        db.session.delete(t)
+    )
 
     raw_expires_in = token_data.get('expires_in')
     try:
