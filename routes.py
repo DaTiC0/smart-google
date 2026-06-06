@@ -19,9 +19,8 @@ bp = Blueprint('routes', __name__)
 
 def _oauth_error_response(exc):
     """Return OAuth errors in a client-friendly way when redirect URI is valid."""
-    def fallback():
-        status_code = getattr(exc, 'status_code', 400) or 400
-        return jsonify(error=exc.error, error_description=exc.description), status_code
+    status_code = getattr(exc, 'status_code', 400) or 400
+    error_response = jsonify(error=exc.error, error_description=exc.description), status_code
 
     client_id = request.values.get('client_id')
     redirect_uri = request.values.get('redirect_uri')
@@ -29,17 +28,17 @@ def _oauth_error_response(exc):
 
     client = load_client(client_id) if client_id else None
     if not client:
-        return fallback()
+        return error_response
 
     if not redirect_uri:
         redirect_uri = client.get_default_redirect_uri()
 
     if not redirect_uri or not client.check_redirect_uri(redirect_uri):
-        return fallback()
+        return error_response
 
     parsed = urlparse(redirect_uri)
     if not (parsed.scheme and parsed.netloc):
-        return fallback()
+        return error_response
 
     params = {'error': exc.error}
     if exc.description:
