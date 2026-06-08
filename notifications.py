@@ -86,6 +86,29 @@ def handle_disconnect(_client, _userdata, rc):
         _append_mqtt_log('system', f'Unexpected disconnect (rc={rc})', 'Disconnected')
 
 
+def _handle_status_message(user_id, device_id, payload):
+    """Update Firebase device status based on MQTT payload."""
+    # Guard JSON decoding to avoid noisy errors when payloads are already decoded or non-JSON
+    state_updates = None
+
+    if isinstance(payload, dict):
+        state_updates = payload
+    elif isinstance(payload, str):
+        try:
+            state_updates = json.loads(payload)
+        except (ValueError, TypeError):
+            logger.debug("Non-JSON status payload for %s/%s; skipping Firebase update", user_id, device_id)
+
+    if state_updates is not None:
+        try:
+            ref = _get_user_device_states_ref(user_id, device_id)
+            if ref:
+                ref.update(state_updates)
+                logger.debug("Updated Firebase status for %s/%s", user_id, device_id)
+        except Exception as e:
+            logger.error("Failed to update Firebase from MQTT: %s", e)
+
+
 @mqtt.on_message()
 def handle_messages(_client, _userdata, message):
     payload = _decode_payload(message.payload)
@@ -100,38 +123,19 @@ def handle_messages(_client, _userdata, message):
     parts = topic.split('/')
     if len(parts) < 3:
         _append_mqtt_log(topic, payload, 'Received', user_id=None)
+    parts = topic.split("/")
+    if len(parts) < 3:
+        _append_mqtt_log(topic, payload, "Received", user_id=None)
         return
 
     user_id = parts[0]
     device_id = parts[1]
     msg_type = parts[2]
 
-    # Try to update Firebase if it's a status message
-    if msg_type == 'status':
-        # Guard JSON decoding to avoid noisy errors when payloads are already decoded or non-JSON
-        state_updates = None
+    if msg_type == "status":
+        _handle_status_message(user_id, device_id, payload)
 
-        if isinstance(payload, dict):
-            state_updates = payload
-        elif isinstance(payload, str):
-            try:
-                state_updates = json.loads(payload)
-            except (ValueError, TypeError):
-                logger.debug("Non-JSON status payload for %s/%s; skipping Firebase update", user_id, device_id)
-
-        if state_updates is not None:
-            try:
-                ref = _get_user_device_states_ref(user_id, device_id)
-                if ref:
-                    ref.update(state_updates)
-                    logger.debug("Updated Firebase status for %s/%s", user_id, device_id)
-            except Exception as e:
-                logger.error("Failed to update Firebase from MQTT: %s", e)
-
-    _append_mqtt_log(topic, payload, 'Received', user_id=user_id)
-
-
-@mqtt.on_publish()
+    _append_mqtt_log(topic, payload, "Received", user_id=user_id)
 def handle_publish(_client, _userdata, mid):
     logger.debug('Published message with mid %s.', mid)
 
