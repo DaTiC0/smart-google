@@ -123,19 +123,19 @@ def handle_messages(_client, _userdata, message):
     parts = topic.split('/')
     if len(parts) < 3:
         _append_mqtt_log(topic, payload, 'Received', user_id=None)
-    parts = topic.split("/")
-    if len(parts) < 3:
-        _append_mqtt_log(topic, payload, "Received", user_id=None)
         return
 
     user_id = parts[0]
     device_id = parts[1]
     msg_type = parts[2]
 
-    if msg_type == "status":
+    if msg_type == 'status':
         _handle_status_message(user_id, device_id, payload)
 
-    _append_mqtt_log(topic, payload, "Received", user_id=user_id)
+    _append_mqtt_log(topic, payload, 'Received', user_id=user_id)
+
+
+@mqtt.on_publish()
 def handle_publish(_client, _userdata, mid):
     logger.debug('Published message with mid %s.', mid)
 
