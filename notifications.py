@@ -121,14 +121,16 @@ def handle_messages(_client, _userdata, message):
     # {user_id}/{device_id}/status
 
     parts = topic.split('/')
-    user_id = None
-    if len(parts) >= 3:
-        user_id = parts[0]
-        device_id = parts[1]
-        msg_type = parts[2]
+    if len(parts) < 3:
+        _append_mqtt_log(topic, payload, 'Received', user_id=None)
+        return
 
-        if msg_type == 'status':
-            _handle_status_message(user_id, device_id, payload)
+    user_id = parts[0]
+    device_id = parts[1]
+    msg_type = parts[2]
+
+    if msg_type == 'status':
+        _handle_status_message(user_id, device_id, payload)
 
     _append_mqtt_log(topic, payload, 'Received', user_id=user_id)
 
