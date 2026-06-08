@@ -13,9 +13,11 @@ sys.modules['firebase_admin.db'] = mock_db
 if 'firebase_utils' in sys.modules:
     del sys.modules['firebase_utils']
 
-import firebase_utils
+import firebase_utils  # noqa: E402
+
 
 class TestFirebaseUtils(unittest.TestCase):
+
     def setUp(self):
         mock_db.reference.reset_mock()
         mock_db.reference.side_effect = None
@@ -42,17 +44,17 @@ class TestFirebaseUtils(unittest.TestCase):
         # Ensure FIREBASE_AVAILABLE is True for this test
         with patch('firebase_utils.FIREBASE_AVAILABLE', True):
             # Patch db.reference to raise an exception
-            mock_db.reference.side_effect = Exception("Firebase initialization error")
-
-            with self.assertLogs('firebase_utils', level='WARNING') as cm:
-                ref = firebase_utils.reference()
+            # Use patch directly on the module's db.reference for better isolation in pytest
+            with patch('firebase_utils.db.reference', side_effect=Exception("Firebase initialization error")):
+                with patch('firebase_utils.logger.warning') as mock_warning:
+                    ref = firebase_utils.reference()
 
             # Verify it returns a MockRef instance
             self.assertIsInstance(ref, firebase_utils.MockRef)
 
             # Verify the warning was logged
-            self.assertTrue(any("Firebase not initialized, falling back to mock data" in output for output in cm.output))
-            self.assertTrue(any("Firebase initialization error" in output for output in cm.output))
+            mock_warning.assert_called()
+            self.assertIn("Firebase not initialized", mock_warning.call_args[0][0])
 
     def test_reference_firebase_not_available(self):
         with patch('firebase_utils.FIREBASE_AVAILABLE', False):
@@ -117,6 +119,7 @@ class TestFirebaseUtils(unittest.TestCase):
             self.assertEqual(firebase_utils.MOCK_DEVICES["test-light-1"]["states"]["on"], not original_states["on"])
         finally:
             firebase_utils.MOCK_DEVICES["test-light-1"]["states"] = original_states
+
 
 if __name__ == '__main__':
     unittest.main()

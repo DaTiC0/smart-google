@@ -19,39 +19,32 @@ bp = Blueprint('routes', __name__)
 
 def _oauth_error_response(exc):
     """Return OAuth errors in a client-friendly way when redirect URI is valid."""
-    status_code = getattr(exc, 'status_code', 400) or 400
-    error_response = jsonify(error=exc.error, error_description=exc.description), status_code
-
     client_id = request.values.get('client_id')
     redirect_uri = request.values.get('redirect_uri')
     state = request.values.get('state')
 
     client = load_client(client_id) if client_id else None
-    if not client:
-        return error_response
+    if client:
+        if not redirect_uri:
+            redirect_uri = client.get_default_redirect_uri()
+        if redirect_uri and client.check_redirect_uri(redirect_uri):
+            parsed = urlparse(redirect_uri)
+            if parsed.scheme and parsed.netloc:
+                params = {'error': exc.error}
+                if exc.description:
+                    params['error_description'] = exc.description
+                if state:
+                    params['state'] = state
 
-    if not redirect_uri:
-        redirect_uri = client.get_default_redirect_uri()
+                existing_query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                existing_query.update(params)
+                safe_redirect_uri = urlunparse(
+                    parsed._replace(query=urlencode(existing_query))
+                )
+                return redirect(safe_redirect_uri)
 
-    if not redirect_uri or not client.check_redirect_uri(redirect_uri):
-        return error_response
-
-    parsed = urlparse(redirect_uri)
-    if not (parsed.scheme and parsed.netloc):
-        return error_response
-
-    params = {'error': exc.error}
-    if exc.description:
-        params['error_description'] = exc.description
-    if state:
-        params['state'] = state
-
-    existing_query = dict(parse_qsl(parsed.query, keep_blank_values=True))
-    existing_query.update(params)
-    safe_redirect_uri = urlunparse(
-        parsed._replace(query=urlencode(existing_query))
-    )
-    return redirect(safe_redirect_uri)
+    status_code = getattr(exc, 'status_code', 400) or 400
+    return jsonify(error=exc.error, error_description=exc.description), status_code
 
 
 def _resolve_smarthome_user_scope(req):
