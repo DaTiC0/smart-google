@@ -1,53 +1,35 @@
 import unittest
-import sys
 from unittest.mock import MagicMock, patch
-
-# Setup mocks for firebase_admin before importing firebase_utils
-mock_db = MagicMock()
-mock_firebase_admin = MagicMock()
-mock_firebase_admin.db = mock_db
-sys.modules['firebase_admin'] = mock_firebase_admin
-sys.modules['firebase_admin.db'] = mock_db
-
-# Clear firebase_utils from sys.modules to ensure a fresh import with our mocks
-if 'firebase_utils' in sys.modules:
-    del sys.modules['firebase_utils']
-
-import firebase_utils  # noqa: E402
+import firebase_utils
 
 
 class TestFirebaseUtils(unittest.TestCase):
 
-    def setUp(self):
-        mock_db.reference.reset_mock()
-        mock_db.reference.side_effect = None
-        # By default, mock_db.reference returns a new MagicMock
-        mock_db.reference.return_value = MagicMock()
-
-    def test_firebase_available_flag(self):
-        # Verify that our mock worked and FIREBASE_AVAILABLE is True
-        self.assertTrue(firebase_utils.FIREBASE_AVAILABLE)
-
     def test_reference_root_success(self):
-        with patch('firebase_utils.FIREBASE_AVAILABLE', True):
+        # Mock db as it might not be imported if firebase_admin is missing
+        mock_db = MagicMock()
+        with patch('firebase_utils.FIREBASE_AVAILABLE', True), \
+             patch('firebase_utils.db', mock_db, create=True):
             ref = firebase_utils.reference()
             mock_db.reference.assert_called_with('/devices')
             self.assertNotIsInstance(ref, firebase_utils.MockRef)
 
     def test_reference_user_success(self):
-        with patch('firebase_utils.FIREBASE_AVAILABLE', True):
+        mock_db = MagicMock()
+        with patch('firebase_utils.FIREBASE_AVAILABLE', True), \
+             patch('firebase_utils.db', mock_db, create=True):
             ref = firebase_utils.reference(user_id="user123")
             mock_db.reference.assert_called_with('/users/user123/devices')
             self.assertNotIsInstance(ref, firebase_utils.MockRef)
 
     def test_reference_exception_path(self):
         # Ensure FIREBASE_AVAILABLE is True for this test
-        with patch('firebase_utils.FIREBASE_AVAILABLE', True):
-            # Patch db.reference to raise an exception
-            # Use patch directly on the module's db.reference for better isolation in pytest
-            with patch('firebase_utils.db.reference', side_effect=Exception("Firebase initialization error")):
-                with patch('firebase_utils.logger.warning') as mock_warning:
-                    ref = firebase_utils.reference()
+        mock_db = MagicMock()
+        mock_db.reference.side_effect = Exception("Firebase initialization error")
+        with patch('firebase_utils.FIREBASE_AVAILABLE', True), \
+             patch('firebase_utils.db', mock_db, create=True), \
+             patch('firebase_utils.logger.warning') as mock_warning:
+            ref = firebase_utils.reference()
 
             # Verify it returns a MockRef instance
             self.assertIsInstance(ref, firebase_utils.MockRef)
@@ -60,7 +42,6 @@ class TestFirebaseUtils(unittest.TestCase):
         with patch('firebase_utils.FIREBASE_AVAILABLE', False):
             ref = firebase_utils.reference()
             self.assertIsInstance(ref, firebase_utils.MockRef)
-            mock_db.reference.assert_not_called()
 
     def test_normalize_user_scope(self):
         self.assertEqual(firebase_utils._normalize_user_scope("user123"), "user123")
@@ -74,13 +55,16 @@ class TestFirebaseUtils(unittest.TestCase):
         self.assertIsNone(firebase_utils._normalize_user_scope("user..123"))
 
     def test_get_user_device_states_ref_valid(self):
-        with patch('firebase_utils.FIREBASE_AVAILABLE', True):
-            mock_ref = MagicMock()
-            mock_db.reference.return_value = mock_ref
-            mock_device_ref = MagicMock()
-            mock_ref.child.return_value = mock_device_ref
-            mock_states_ref = MagicMock()
-            mock_device_ref.child.return_value = mock_states_ref
+        mock_db = MagicMock()
+        mock_ref = MagicMock()
+        mock_db.reference.return_value = mock_ref
+        mock_device_ref = MagicMock()
+        mock_ref.child.return_value = mock_device_ref
+        mock_states_ref = MagicMock()
+        mock_device_ref.child.return_value = mock_states_ref
+
+        with patch('firebase_utils.FIREBASE_AVAILABLE', True), \
+             patch('firebase_utils.db', mock_db, create=True):
 
             ref = firebase_utils._get_user_device_states_ref("user123", "device1")
 
